@@ -15,6 +15,27 @@ import { analyseSeasonFromAverageRgb } from '../features/colourAnalysis/analyseS
 import { averageRgbFromImageUri } from '../features/colourAnalysis/imageSampling';
 import { SEASONS } from '../features/colourAnalysis/seasons';
 
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+
+const handleDownloadPDF = async () => {
+  if (result.status !== 'ready' || !seasonData) return;
+
+  try {
+    const html = generateHTML();
+
+    const { uri } = await Print.printToFileAsync({
+      html,
+    });
+
+    await Sharing.shareAsync(uri);
+
+  } catch (error) {
+    console.error(error);
+    Alert.alert("Error", "Could not generate PDF");
+  }
+};
+
 type ResultState =
   | { status: 'idle' }
   | { status: 'loading' }
