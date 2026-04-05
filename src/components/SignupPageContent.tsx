@@ -39,7 +39,7 @@ export default function SignupPageContent() {
     <div className="text-center py-8">
       <h1 className="text-2xl font-bold mb-4">Account Creation Not Required</h1>
       <p className="mb-4 text-muted-foreground">
-        Perfectly Styled operates without user accounts.
+        Styla operates without user accounts.
       </p>
       <p className="mb-6">
         {fromQuestionnaire 

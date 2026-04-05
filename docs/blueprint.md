@@ -1,4 +1,4 @@
-# **App Name**: Perfectly Styled
+# **App Name**: Styla
 
 ## Core Features:
 

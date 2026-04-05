@@ -12,7 +12,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata = {
-  title: 'Perfectly Styled',
+  title: 'Styla',
   description: 'Automated Style Analysis',
 };
 
@@ -57,7 +57,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/privacy">Privacy Policy</Link>
             </p>
             <p>
-              Perfectly Styled is a trading name of Rai Tech Solutions Ltd.
+              Styla is a trading name of Rai Tech Solutions Ltd.
               Registered in England & Wales. Company No. 13846682.
             </p>
             <p>

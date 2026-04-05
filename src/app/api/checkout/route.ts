@@ -49,7 +49,7 @@ async function paypalOrder(amount: number, access: string) {
       purchase_units: [
         {
           amount: { currency_code: 'GBP', value: amount.toFixed(2) },
-          description: 'Perfectly Styled report',
+          description: 'Styla report',
         },
       ],
       // For live, ensure your return_url and cancel_url are publicly accessible

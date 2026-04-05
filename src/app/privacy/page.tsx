@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy | Perfectly Styled',
+  title: 'Privacy Policy | Styla',
   description: 'How we collect, use and protect your personal data.',
 };
 
@@ -13,7 +13,7 @@ export default function PrivacyPolicy() {
       <p><strong>Last updated:</strong> 12 July 2025</p>
 
       <h2>1. Who we are</h2>
-      <p>Perfectly Styled is an online style‑analysis tool based in the United Kingdom.</p>
+      <p>Styla is an online style‑analysis tool based in the United Kingdom.</p>
 
       <h2>2. What data we collect</h2>
       <ul>

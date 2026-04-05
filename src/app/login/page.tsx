@@ -13,7 +13,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md p-6 text-center bg-card rounded-lg shadow-md">
           <h1 className="text-2xl font-bold mb-4">Login Not Required</h1>
           <p className="mb-6 text-muted-foreground">
-            Perfectly Styled now operates without user accounts. You can directly complete the
+            Styla now operates without user accounts. You can directly complete the
             questionnaire and receive your report.
           </p>
           <Button asChild>

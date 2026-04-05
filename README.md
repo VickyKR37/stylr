@@ -1,5 +1,5 @@
 
-# Firebase Studio - Perfectly Styled
+# Firebase Studio - Styla
 
 This is a Next.js application built with Firebase Studio. It provides a style questionnaire, AI-powered recommendations, and a simulated payment flow to receive a personalized style report.
 
