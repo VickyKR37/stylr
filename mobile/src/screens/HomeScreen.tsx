@@ -13,7 +13,8 @@ export function HomeScreen({ navigation }: Props) {
 
       <Pressable style={styles.card} onPress={() => navigation.navigate('StyleAnalysis')}>
         <Text style={styles.cardTitle}>Style analysis</Text>
-        <Text style={styles.cardBody}>Please note this Style Analysis is designed only for women. Answer a few questions to get personalised style guidance. You'll need tight fitting clothes, a straight, long stick (like a metre stick) and a full length mirror.</Text>
+        <Text style={styles.cardBody}>Please note this analysis is designed only for women. Answer a few questions to get personalised style guidance. 
+          To answer the questions you'll need to wear something in which you can clearly see your shape, measuring tape, a straight, long stick (like a metre stick) and a full length mirror.</Text>
       </Pressable>
 
       <Pressable style={[styles.card, styles.cardSpacer]} onPress={() => navigation.navigate('ColourAnalysis')}>
