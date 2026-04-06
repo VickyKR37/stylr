@@ -102,7 +102,7 @@ const bodyShapeOptions: Array<{ name: BodyShape; description: string }> = [
   {
     name: 'Hourglass',
     description:
-      'Balanced proportions between shoulders and hips with a well-defined waist.',
+      'Balanced proportions between shoulders and hips with a well-defined waist (atleast 10 inches smaller than shoulders/hips).',
   },
 ];
 
