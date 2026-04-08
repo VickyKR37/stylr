@@ -274,7 +274,7 @@ export function StyleAnalysisScreen() {
 
       <Text style={styles.stepTitle}>{stepTitles[step]}</Text>
       {step === 3 ? (
-        <Text style={styles.questionHint}>
+        <Text style={[styles.questionHint, styles.stepHint]}>
           In front of a full length mirror, wearing something you can clearly see your shape in, hold
           the metre stick beside your shoulder and let it drop downwards.
         </Text>
@@ -483,6 +483,9 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     fontSize: 12,
     marginTop: -8,
+  },
+  stepHint: {
+    marginTop: 8,
   },
   chipRow: {
     flexDirection: 'row',
