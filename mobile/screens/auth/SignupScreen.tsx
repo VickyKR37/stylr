@@ -16,6 +16,20 @@ export function SignupScreen({ navigation }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  function startCooldown(seconds: number) {
+    setCooldownSeconds(seconds);
+    const timer = setInterval(() => {
+      setCooldownSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }
 
   async function handleSignup() {
     setError(null);
@@ -30,12 +44,23 @@ export function SignupScreen({ navigation }: Props) {
       return;
     }
 
+    if (cooldownSeconds > 0) {
+      setError(`Please wait ${cooldownSeconds}s before trying again.`);
+      return;
+    }
+
     setSubmitting(true);
     try {
       await signUp(email.trim(), password, fullName.trim());
       setSuccessMessage('Account created. If confirmation is enabled, check your email before logging in.');
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Sign up failed';
+      const rawMessage = e instanceof Error ? e.message : 'Sign up failed';
+      const lower = rawMessage.toLowerCase();
+      let message = rawMessage;
+      if (lower.includes('rate limit')) {
+        message = 'Too many requests right now. Please wait a minute, then try again.';
+        startCooldown(60);
+      }
       setError(message);
     } finally {
       setSubmitting(false);
@@ -87,9 +112,14 @@ export function SignupScreen({ navigation }: Props) {
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
       {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
-      <Pressable style={[styles.button, submitting ? styles.buttonDisabled : null]} onPress={handleSignup} disabled={submitting}>
+      <Pressable
+        style={[styles.button, submitting || cooldownSeconds > 0 ? styles.buttonDisabled : null]}
+        onPress={handleSignup}
+        disabled={submitting || cooldownSeconds > 0}
+      >
         {submitting ? <ActivityIndicator color="#FAF8F5" /> : <Text style={styles.buttonText}>Sign up</Text>}
       </Pressable>
+      {cooldownSeconds > 0 ? <Text style={styles.cooldownText}>Try again in {cooldownSeconds}s</Text> : null}
 
       <Pressable onPress={() => navigation.navigate('Login')}>
         <Text style={styles.linkText}>Already have an account? Login</Text>
@@ -158,5 +188,11 @@ const styles = StyleSheet.create({
     color: '#256029',
     marginBottom: 8,
     fontSize: 13,
+  },
+  cooldownText: {
+    color: '#6b7280',
+    marginTop: 8,
+    fontSize: 12,
+    textAlign: 'center',
   },
 });

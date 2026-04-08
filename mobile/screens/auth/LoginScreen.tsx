@@ -52,7 +52,11 @@ export function LoginScreen({ navigation }: Props) {
       await resendConfirmationEmail(email.trim());
       setInfo('Confirmation email sent. Please check your inbox (and spam folder).');
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Could not resend confirmation email.';
+      const rawMessage = e instanceof Error ? e.message : 'Could not resend confirmation email.';
+      const lower = rawMessage.toLowerCase();
+      const message = lower.includes('rate limit')
+        ? 'Too many confirmation emails requested. Please wait a minute and try again.'
+        : rawMessage;
       setError(message);
     } finally {
       setResending(false);
