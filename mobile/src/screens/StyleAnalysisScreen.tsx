@@ -345,6 +345,9 @@ export function StyleAnalysisScreen() {
       {step === 2 ? (
         <View style={styles.stepBlock}>
           <Text style={styles.questionLabel}>Wrist Circumference</Text>
+          <Text style={styles.questionHint}>
+            Measure the diameter of the smallest part of your wrist
+          </Text>
           <View style={styles.chipRow}>
             {scaleOptions.wrist.map((opt) => (
               <OptionChip
@@ -468,6 +471,11 @@ const styles = StyleSheet.create({
     color: 'rgba(248,250,252,0.9)',
     fontSize: 13,
     fontWeight: '800',
+  },
+  questionHint: {
+    color: '#cbd5e1',
+    fontSize: 12,
+    marginTop: -8,
   },
   chipRow: {
     flexDirection: 'row',
