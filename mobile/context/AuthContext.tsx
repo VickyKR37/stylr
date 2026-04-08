@@ -16,6 +16,10 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+function getEmailRedirectTo(): string {
+  return 'styla://auth/callback';
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -80,6 +84,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       email,
       password,
       options: {
+        emailRedirectTo: getEmailRedirectTo(),
         data: {
           full_name: fullName,
         },
@@ -89,11 +94,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
       throw error;
     }
 
-    // Only attempt immediate profile insert when a session exists.
-    // If email confirmation is required, profile creation will run on first signed-in session.
+    // Try immediate profile insert when a session exists.
     if (data.session?.user) {
       await ensureProfile(data.session.user.id, email, fullName);
+      return;
     }
+
+    // If signup did not create a session (common when confirmation is enabled),
+    // try signing in immediately. This succeeds when confirmation is disabled.
+    await signIn(email, password);
   }
 
   async function signOut() {
@@ -107,6 +116,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const { error } = await supabase.auth.resend({
       type: 'signup',
       email,
+      options: {
+        emailRedirectTo: getEmailRedirectTo(),
+      },
     });
     if (error) {
       throw error;
