@@ -12,6 +12,10 @@ function getBodyShapeKey(formValue: string): string | undefined {
   return mapping[formValue];
 }
 
+function stripMarkdownMarkers(text: string): string {
+  return text.replace(/[#*]/g, '');
+}
+
 export function generateLogicBasedReport(questionnaireData: QuestionnaireData): string {
   let recommendations = '## Your Personalised Style Report\n\n';
 
@@ -189,6 +193,6 @@ export function generateLogicBasedReport(questionnaireData: QuestionnaireData): 
     console.error('generateLogicBasedReport error', error);
   }
 
-  return recommendations;
+  return stripMarkdownMarkers(recommendations);
 }
 
