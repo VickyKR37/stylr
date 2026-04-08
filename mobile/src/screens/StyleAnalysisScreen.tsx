@@ -7,6 +7,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 import { generateLogicBasedReport } from '../features/styleAnalysis/generateLogicBasedReport';
 import type {
@@ -137,6 +139,7 @@ export function StyleAnalysisScreen() {
   const [answers, setAnswers] = useState<QuestionnaireFormState>({});
   const [report, setReport] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const progress = useMemo(() => ((step + 1) / 4) * 100, [step]);
 
@@ -234,6 +237,59 @@ export function StyleAnalysisScreen() {
     if (step > 0) setStep((prev) => ((prev - 1) as Step));
   }
 
+  function escapeHtml(rawText: string): string {
+    return rawText
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function buildPdfHtml(reportText: string): string {
+    const formattedReport = escapeHtml(reportText).replace(/\n/g, '<br />');
+    return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #0f172a; padding: 24px; line-height: 1.55; }
+      h1 { font-size: 22px; margin: 0 0 14px 0; }
+      p { margin: 0; white-space: normal; }
+    </style>
+  </head>
+  <body>
+    <h1>Your Style Report</h1>
+    <p>${formattedReport}</p>
+  </body>
+</html>`;
+  }
+
+  async function onDownloadPdf() {
+    if (!report || isDownloadingPdf) return;
+    setIsDownloadingPdf(true);
+    try {
+      const { uri } = await Print.printToFileAsync({
+        html: buildPdfHtml(report),
+      });
+      const sharingAvailable = await Sharing.isAvailableAsync();
+      if (!sharingAvailable) {
+        Alert.alert('PDF ready', `Your PDF was created at:\n${uri}`);
+        return;
+      }
+      await Sharing.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Download your style report PDF',
+        UTI: '.pdf',
+      });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Could not download your PDF.';
+      Alert.alert('PDF error', message);
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  }
+
   if (report) {
     return (
       <ScrollView contentContainerStyle={styles.container}>
@@ -251,13 +307,14 @@ export function StyleAnalysisScreen() {
           </ScrollView>
         </View>
 
-        <Pressable style={[styles.primaryButton]} onPress={() => {
-          setReport(null);
-          setIsGenerating(false);
-          setStep(0);
-          setAnswers({});
-        }}>
-          <Text style={styles.primaryButtonText}>Edit answers</Text>
+        <Pressable
+          style={[styles.primaryButton, isDownloadingPdf ? styles.disabledButton : null]}
+          onPress={onDownloadPdf}
+          disabled={isDownloadingPdf}
+        >
+          <Text style={styles.primaryButtonText}>
+            {isDownloadingPdf ? 'Preparing PDF…' : 'Download PDF'}
+          </Text>
         </Pressable>
       </ScrollView>
     );
