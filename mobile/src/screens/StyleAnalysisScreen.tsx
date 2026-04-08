@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { cacheDirectory, copyAsync } from 'expo-file-system/legacy';
+import { File, Paths } from 'expo-file-system';
 
 import { generateLogicBasedReport } from '../features/styleAnalysis/generateLogicBasedReport';
 import type {
@@ -305,14 +305,10 @@ export function StyleAnalysisScreen() {
       const { uri } = await Print.printToFileAsync({
         html: buildPdfHtml(report),
       });
-      if (!cacheDirectory) {
-        throw new Error('No cache directory available for PDF export.');
-      }
-      const targetUri = `${cacheDirectory}style-report.pdf`;
-      await copyAsync({
-        from: uri,
-        to: targetUri,
-      });
+      const sourceFile = new File(uri);
+      const targetFile = new File(Paths.cache, 'style-report.pdf');
+      sourceFile.copy(targetFile);
+      const targetUri = targetFile.uri;
       const sharingAvailable = await Sharing.isAvailableAsync();
       if (!sharingAvailable) {
         Alert.alert('PDF ready', `Your PDF was created at:\n${targetUri}`);
