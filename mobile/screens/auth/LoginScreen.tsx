@@ -20,7 +20,14 @@ export function LoginScreen({ navigation }: Props) {
     try {
       await signIn(email.trim(), password);
     } catch (e) {
-      const message = e instanceof Error ? e.message : 'Login failed';
+      const rawMessage = e instanceof Error ? e.message : 'Login failed';
+      const lower = rawMessage.toLowerCase();
+      let message = rawMessage;
+      if (lower.includes('email not confirmed')) {
+        message = 'Please confirm your email first, then try logging in again.';
+      } else if (lower.includes('invalid login credentials')) {
+        message = 'Invalid email or password. Check your details or sign up first.';
+      }
       setError(message);
     } finally {
       setSubmitting(false);

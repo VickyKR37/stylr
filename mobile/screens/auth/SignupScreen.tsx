@@ -14,10 +14,12 @@ export function SignupScreen({ navigation }: Props) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSignup() {
     setError(null);
+    setSuccessMessage(null);
 
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
@@ -31,6 +33,7 @@ export function SignupScreen({ navigation }: Props) {
     setSubmitting(true);
     try {
       await signUp(email.trim(), password, fullName.trim());
+      setSuccessMessage('Account created. If confirmation is enabled, check your email before logging in.');
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Sign up failed';
       setError(message);
@@ -82,6 +85,7 @@ export function SignupScreen({ navigation }: Props) {
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {successMessage ? <Text style={styles.successText}>{successMessage}</Text> : null}
 
       <Pressable style={[styles.button, submitting ? styles.buttonDisabled : null]} onPress={handleSignup} disabled={submitting}>
         {submitting ? <ActivityIndicator color="#FAF8F5" /> : <Text style={styles.buttonText}>Sign up</Text>}
@@ -147,6 +151,11 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#B3261E',
+    marginBottom: 8,
+    fontSize: 13,
+  },
+  successText: {
+    color: '#256029',
     marginBottom: 8,
     fontSize: 13,
   },

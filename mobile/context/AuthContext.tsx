@@ -38,10 +38,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     restoreSession();
 
-    const { data: authSubscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: authSubscription } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
       setLoading(false);
+
+      // Ensure profile exists once a real authenticated session is available.
+      if (nextSession?.user) {
+        await ensureProfile(nextSession.user.id, nextSession.user.email ?? null, nextSession.user.user_metadata?.full_name ?? null);
+      }
     });
 
     return () => {
@@ -57,25 +62,36 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }
 
+  async function ensureProfile(userId: string, email: string | null, fullName: string | null) {
+    const { error } = await supabase.from('profiles').upsert({
+      id: userId,
+      email,
+      full_name: fullName,
+    });
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Profile upsert skipped:', error.message);
+    }
+  }
+
   async function signUp(email: string, password: string, fullName: string) {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullName,
+        },
+      },
     });
     if (error) {
       throw error;
     }
 
-    const signedUpUser = data.user;
-    if (!signedUpUser) return;
-
-    const { error: profileError } = await supabase.from('profiles').upsert({
-      id: signedUpUser.id,
-      email,
-      full_name: fullName,
-    });
-    if (profileError) {
-      throw profileError;
+    // Only attempt immediate profile insert when a session exists.
+    // If email confirmation is required, profile creation will run on first signed-in session.
+    if (data.session?.user) {
+      await ensureProfile(data.session.user.id, email, fullName);
     }
   }
 
