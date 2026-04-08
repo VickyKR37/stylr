@@ -5,16 +5,19 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { PaymentAccessProvider } from './context/PaymentAccessContext';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import { SignupScreen } from './screens/auth/SignupScreen';
 import { ColourAnalysisScreen } from './src/screens/ColourAnalysisScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
+import { PaymentScreen } from './src/screens/PaymentScreen';
 import { StyleAnalysisScreen } from './src/screens/StyleAnalysisScreen';
 
 export type RootStackParamList = {
   Home: undefined;
   ColourAnalysis: undefined;
   StyleAnalysis: undefined;
+  Payment: { target: 'StyleAnalysis' | 'ColourAnalysis' };
 };
 
 export type AuthStackParamList = {
@@ -39,6 +42,7 @@ function AppNavigator() {
         component={StyleAnalysisScreen}
         options={{ title: 'Style Analysis' }}
       />
+      <AppStack.Screen name="Payment" component={PaymentScreen} options={{ title: 'Payment' }} />
     </AppStack.Navigator>
   );
 }
@@ -70,7 +74,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <RootNavigation />
+        <PaymentAccessProvider>
+          <RootNavigation />
+        </PaymentAccessProvider>
       </AuthProvider>
       <StatusBar style="auto" />
     </SafeAreaProvider>

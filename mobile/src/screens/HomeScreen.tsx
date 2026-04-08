@@ -2,25 +2,49 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
+import { usePaymentAccess } from '../../context/PaymentAccessContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
+  const { hasAccessFor, loading } = usePaymentAccess();
+
+  function openStyleAnalysis() {
+    if (loading) return;
+    if (hasAccessFor('style')) {
+      navigation.navigate('StyleAnalysis');
+      return;
+    }
+    navigation.navigate('Payment', { target: 'StyleAnalysis' });
+  }
+
+  function openColourAnalysis() {
+    if (loading) return;
+    if (hasAccessFor('colour')) {
+      navigation.navigate('ColourAnalysis');
+      return;
+    }
+    navigation.navigate('Payment', { target: 'ColourAnalysis' });
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Styla</Text>
-      <Text style={styles.subtitle}>Choose a feature to continue.</Text>
+      <Text style={styles.subtitle}>Choose a feature to continue (payment required).</Text>
 
-      <Pressable style={styles.card} onPress={() => navigation.navigate('StyleAnalysis')}>
+      <Pressable style={styles.card} onPress={openStyleAnalysis}>
         <Text style={styles.cardTitle}>Style analysis</Text>
         <Text style={styles.cardBody}>Please note this analysis is designed only for women. Answer a few questions to get personalised style guidance. 
           To answer the questions you'll need to wear something in which you can clearly see your shape, measuring tape, a straight, long stick (like a metre stick) and a full length mirror. Please answer the questions accurately the first time because you won't be able to edit your answers later.</Text>
+        <Text style={styles.priceTag}>£19.99</Text>
       </Pressable>
 
-      <Pressable style={[styles.card, styles.cardSpacer]} onPress={() => navigation.navigate('ColourAnalysis')}>
+      <Pressable style={[styles.card, styles.cardSpacer]} onPress={openColourAnalysis}>
         <Text style={styles.cardTitle}>Colour analysis</Text>
         <Text style={styles.cardBody}>Upload or take a photo to find your season and palette.</Text>
+        <Text style={styles.priceTag}>£6.99</Text>
       </Pressable>
+      <Text style={styles.bundleNote}>Bundle offer: both analyses for £24.99</Text>
     </View>
   );
 }
@@ -63,6 +87,18 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     fontSize: 13,
     lineHeight: 18,
+  },
+  priceTag: {
+    color: '#C4956A',
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  bundleNote: {
+    color: '#C4956A',
+    marginTop: 14,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 
