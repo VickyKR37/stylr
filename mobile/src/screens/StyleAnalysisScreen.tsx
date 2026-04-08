@@ -273,6 +273,12 @@ export function StyleAnalysisScreen() {
       </View>
 
       <Text style={styles.stepTitle}>{stepTitles[step]}</Text>
+      {step === 3 ? (
+        <Text style={styles.questionHint}>
+          In front of a full length mirror, wearing something you can clearly see your shape in, hold
+          the metre stick beside your shoulder and let it drop downwards.
+        </Text>
+      ) : null}
 
       {step === 0 ? (
         <View style={styles.stepBlock}>
