@@ -8,14 +8,19 @@ import { useAuth } from '../../context/AuthContext';
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 export function LoginScreen({ navigation }: Props) {
-  const { signIn } = useAuth();
+  const { signIn, resendConfirmationEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
 
   async function handleLogin() {
     setError(null);
+    setInfo(null);
+    setShowResendConfirmation(false);
     setSubmitting(true);
     try {
       await signIn(email.trim(), password);
@@ -25,12 +30,32 @@ export function LoginScreen({ navigation }: Props) {
       let message = rawMessage;
       if (lower.includes('email not confirmed')) {
         message = 'Please confirm your email first, then try logging in again.';
+        setShowResendConfirmation(true);
       } else if (lower.includes('invalid login credentials')) {
         message = 'Invalid email or password. Check your details or sign up first.';
       }
       setError(message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleResendConfirmation() {
+    setError(null);
+    setInfo(null);
+    if (!email.trim()) {
+      setError('Enter your email first, then tap resend confirmation.');
+      return;
+    }
+    setResending(true);
+    try {
+      await resendConfirmationEmail(email.trim());
+      setInfo('Confirmation email sent. Please check your inbox (and spam folder).');
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Could not resend confirmation email.';
+      setError(message);
+    } finally {
+      setResending(false);
     }
   }
 
@@ -60,10 +85,19 @@ export function LoginScreen({ navigation }: Props) {
       />
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
+      {info ? <Text style={styles.infoText}>{info}</Text> : null}
 
       <Pressable style={[styles.button, submitting ? styles.buttonDisabled : null]} onPress={handleLogin} disabled={submitting}>
         {submitting ? <ActivityIndicator color="#FAF8F5" /> : <Text style={styles.buttonText}>Login</Text>}
       </Pressable>
+
+      {showResendConfirmation ? (
+        <Pressable onPress={handleResendConfirmation} disabled={resending}>
+          <Text style={styles.linkText}>
+            {resending ? 'Resending confirmation...' : 'Resend confirmation email'}
+          </Text>
+        </Pressable>
+      ) : null}
 
       <Pressable onPress={() => navigation.navigate('Signup')}>
         <Text style={styles.linkText}>No account yet? Sign up</Text>
@@ -125,6 +159,11 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: '#B3261E',
+    marginBottom: 8,
+    fontSize: 13,
+  },
+  infoText: {
+    color: '#256029',
     marginBottom: 8,
     fontSize: 13,
   },

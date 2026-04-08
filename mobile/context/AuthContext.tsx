@@ -11,6 +11,7 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resendConfirmationEmail: (email: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -102,6 +103,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }
 
+  async function resendConfirmationEmail(email: string) {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+    });
+    if (error) {
+      throw error;
+    }
+  }
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -110,6 +121,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       signIn,
       signUp,
       signOut,
+      resendConfirmationEmail,
     }),
     [loading, session, user],
   );
