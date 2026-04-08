@@ -372,6 +372,7 @@ export function StyleAnalysisScreen() {
           </View>
 
           <Text style={styles.questionLabel}>Shoe Size</Text>
+          <Text style={styles.questionHint}>European sizing</Text>
           <View style={styles.chipRow}>
             {scaleOptions.shoeSize.map((opt) => (
               <OptionChip
