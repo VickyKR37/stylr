@@ -281,8 +281,8 @@ export function StyleAnalysisScreen() {
     <meta charset="utf-8" />
     <style>
       body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #1e293b; padding: 24px; line-height: 1.6; }
-      h1 { font-size: 24px; margin: 0 0 16px 0; color: #312e81; }
-      h2 { font-size: 16px; margin: 14px 0 6px 0; color: #4338ca; }
+      h1 { font-size: 24px; margin: 0 0 16px 0; color: #6366f1; }
+      h2 { font-size: 16px; margin: 14px 0 6px 0; color: #6366f1; }
       p { margin: 0 0 6px 0; white-space: normal; font-size: 13px; }
       p.bullet { margin-left: 14px; }
       p.bullet::before { content: "• "; color: #4f46e5; }
@@ -702,7 +702,7 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   reportTitle: {
-    color: '#f8fafc',
+    color: '#6366f1',
     fontSize: 23,
     fontWeight: '900',
     marginTop: 6,
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   reportHeading: {
-    color: '#a5b4fc',
+    color: '#6366f1',
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '800',
