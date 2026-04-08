@@ -134,6 +134,11 @@ function OptionChip({
   );
 }
 
+function isReportHeading(line: string): boolean {
+  const headingPattern = /^(Line Analysis Summary|Scale Assessment Summary|Body Shape:|Your Dominant|Styling Strategy|Fabrics & Patterns|Clothing Specifics|Avoid:)/i;
+  return headingPattern.test(line) || (/^[A-Z][A-Za-z\s&/()-]+:$/.test(line) && !line.startsWith('- '));
+}
+
 export function StyleAnalysisScreen() {
   const [step, setStep] = useState<Step>(0);
   const [answers, setAnswers] = useState<QuestionnaireFormState>({});
@@ -247,20 +252,47 @@ export function StyleAnalysisScreen() {
   }
 
   function buildPdfHtml(reportText: string): string {
-    const formattedReport = escapeHtml(reportText).replace(/\n/g, '<br />');
+    const reportLines = reportText.split('\n').map((line) => line.trim());
+    let contentHtml = '';
+
+    for (const rawLine of reportLines) {
+      if (!rawLine) {
+        contentHtml += '<div class="spacer"></div>';
+        continue;
+      }
+      if (rawLine === '---') {
+        contentHtml += '<hr />';
+        continue;
+      }
+      if (rawLine.startsWith('- ')) {
+        contentHtml += `<p class="bullet">${escapeHtml(rawLine.slice(2))}</p>`;
+        continue;
+      }
+      if (isReportHeading(rawLine)) {
+        contentHtml += `<h2>${escapeHtml(rawLine)}</h2>`;
+        continue;
+      }
+      contentHtml += `<p>${escapeHtml(rawLine)}</p>`;
+    }
+
     return `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8" />
     <style>
-      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #0f172a; padding: 24px; line-height: 1.55; }
-      h1 { font-size: 22px; margin: 0 0 14px 0; }
-      p { margin: 0; white-space: normal; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: #1e293b; padding: 24px; line-height: 1.6; }
+      h1 { font-size: 24px; margin: 0 0 16px 0; color: #312e81; }
+      h2 { font-size: 16px; margin: 14px 0 6px 0; color: #4338ca; }
+      p { margin: 0 0 6px 0; white-space: normal; font-size: 13px; }
+      p.bullet { margin-left: 14px; }
+      p.bullet::before { content: "• "; color: #4f46e5; }
+      .spacer { height: 6px; }
+      hr { border: none; border-top: 1px solid #cbd5e1; margin: 10px 0; }
     </style>
   </head>
   <body>
     <h1>Your Style Report</h1>
-    <p>${formattedReport}</p>
+    ${contentHtml}
   </body>
 </html>`;
   }
@@ -293,17 +325,42 @@ export function StyleAnalysisScreen() {
   if (report) {
     return (
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Your Style Report</Text>
-        <Text style={styles.body}>
+        <Text style={styles.reportTitle}>Your Style Report</Text>
+        <Text style={styles.reportIntro}>
           Based on your answers, here’s your logic-based recommendation (no payment/email step in
           the native demo).
         </Text>
 
         <View style={styles.reportShell}>
-          <ScrollView style={{ maxHeight: 620 }} nestedScrollEnabled>
-            <Text selectable style={styles.reportText}>
-              {report}
-            </Text>
+          <ScrollView style={styles.reportScroll} contentContainerStyle={styles.reportScrollContent} nestedScrollEnabled>
+            {report.split('\n').map((rawLine, index) => {
+              const line = rawLine.trim();
+              if (!line) {
+                return <View key={`space-${index}`} style={styles.reportSpacer} />;
+              }
+              if (line === '---') {
+                return <View key={`divider-${index}`} style={styles.reportDivider} />;
+              }
+              if (line.startsWith('- ')) {
+                return (
+                  <Text key={`bullet-${index}`} selectable style={styles.reportBullet}>
+                    {'\u2022'} {line.slice(2)}
+                  </Text>
+                );
+              }
+              if (isReportHeading(line)) {
+                return (
+                  <Text key={`heading-${index}`} selectable style={styles.reportHeading}>
+                    {line}
+                  </Text>
+                );
+              }
+              return (
+                <Text key={`line-${index}`} selectable style={styles.reportText}>
+                  {line}
+                </Text>
+              );
+            })}
           </ScrollView>
         </View>
 
@@ -641,13 +698,56 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: 'rgba(148,163,184,0.25)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    padding: 12,
+    backgroundColor: 'rgba(15,23,42,0.78)',
+    padding: 14,
+  },
+  reportTitle: {
+    color: '#f8fafc',
+    fontSize: 23,
+    fontWeight: '900',
+    marginTop: 6,
+  },
+  reportIntro: {
+    color: '#cbd5e1',
+    marginTop: 8,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  reportScroll: {
+    maxHeight: 620,
+  },
+  reportScrollContent: {
+    paddingBottom: 8,
   },
   reportText: {
-    color: 'rgba(248,250,252,0.95)',
-    fontSize: 13,
-    lineHeight: 18,
+    color: '#e2e8f0',
+    fontSize: 14,
+    lineHeight: 22,
+    letterSpacing: 0.2,
+    marginBottom: 4,
+  },
+  reportHeading: {
+    color: '#a5b4fc',
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '800',
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  reportBullet: {
+    color: '#cbd5e1',
+    fontSize: 14,
+    lineHeight: 21,
+    marginLeft: 8,
+    marginBottom: 3,
+  },
+  reportSpacer: {
+    height: 6,
+  },
+  reportDivider: {
+    height: 1,
+    backgroundColor: 'rgba(148,163,184,0.35)',
+    marginVertical: 8,
   },
 });
 
