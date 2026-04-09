@@ -1,12 +1,14 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
+import { useAuth } from '../../context/AuthContext';
 import { usePaymentAccess } from '../../context/PaymentAccessContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Home'>;
 
 export function HomeScreen({ navigation }: Props) {
+  const { signOut } = useAuth();
   const { hasAccessFor, loading } = usePaymentAccess();
 
   function openStyleAnalysis() {
@@ -29,22 +31,33 @@ export function HomeScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Styla</Text>
-      <Text style={styles.subtitle}>Choose a feature to continue (payment required).</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Styla</Text>
+        <Pressable onPress={() => void signOut()} style={styles.signOutBtn} hitSlop={8}>
+          <Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
+      </View>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.subtitle}>Choose a feature to continue (payment required).</Text>
 
-      <Pressable style={styles.card} onPress={openStyleAnalysis}>
-        <Text style={styles.cardTitle}>Style analysis</Text>
-        <Text style={styles.cardBody}>Please note this analysis is designed only for women. Answer a few questions to get personalised style guidance. 
+        <Pressable style={styles.card} onPress={openStyleAnalysis}>
+          <Text style={styles.cardTitle}>Style analysis</Text>
+          <Text style={styles.cardBody}>Please note this analysis is designed only for women. Answer a few questions to get personalised style guidance. 
           To answer the questions you'll need to wear something in which you can clearly see your shape, measuring tape, a straight, long stick (like a metre stick) and a full length mirror. Please answer the questions accurately the first time because you won't be able to edit your answers later.</Text>
-        <Text style={styles.priceTag}>£19.99</Text>
-      </Pressable>
+          <Text style={styles.priceTag}>£19.99</Text>
+        </Pressable>
 
-      <Pressable style={[styles.card, styles.cardSpacer]} onPress={openColourAnalysis}>
-        <Text style={styles.cardTitle}>Colour analysis</Text>
-        <Text style={styles.cardBody}>Upload or take a photo to find your season and palette.</Text>
-        <Text style={styles.priceTag}>£6.99</Text>
-      </Pressable>
-      <Text style={styles.bundleNote}>Bundle offer: both analyses for £24.99</Text>
+        <Pressable style={[styles.card, styles.cardSpacer]} onPress={openColourAnalysis}>
+          <Text style={styles.cardTitle}>Colour analysis</Text>
+          <Text style={styles.cardBody}>Upload or take a photo to find your season and palette.</Text>
+          <Text style={styles.priceTag}>£6.99</Text>
+        </Pressable>
+        <Text style={styles.bundleNote}>Bundle offer: both analyses for £24.99</Text>
+      </ScrollView>
     </View>
   );
 }
@@ -55,11 +68,34 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#0b1220',
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+    marginBottom: 4,
+    gap: 12,
+  },
   title: {
     color: '#f8fafc',
     fontSize: 30,
     fontWeight: '700',
-    marginTop: 6,
+    flex: 1,
+  },
+  signOutBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  signOutText: {
+    color: '#94a3b8',
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 16,
   },
   subtitle: {
     color: '#cbd5e1',
