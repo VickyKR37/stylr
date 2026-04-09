@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { PaymentAccessProvider } from './context/PaymentAccessContext';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import { SignupScreen } from './screens/auth/SignupScreen';
+import { LegalLinksFooter } from './src/components/LegalLinksFooter';
 import { ColourAnalysisScreen } from './src/screens/ColourAnalysisScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { PaymentScreen } from './src/screens/PaymentScreen';
@@ -75,7 +76,12 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <PaymentAccessProvider>
-          <RootNavigation />
+          <View style={styles.appShell}>
+            <View style={styles.navigationShell}>
+              <RootNavigation />
+            </View>
+            <LegalLinksFooter />
+          </View>
         </PaymentAccessProvider>
       </AuthProvider>
       <StatusBar style="auto" />
@@ -84,6 +90,12 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  appShell: {
+    flex: 1,
+  },
+  navigationShell: {
+    flex: 1,
+  },
   loadingShell: {
     flex: 1,
     alignItems: 'center',
