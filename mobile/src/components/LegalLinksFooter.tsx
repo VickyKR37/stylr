@@ -16,23 +16,25 @@ export function LegalLinksFooter() {
 
   return (
     <View style={styles.footer}>
-      {LINKS.map((link, index) => (
-        <View key={link.label} style={styles.linkRow}>
-          <Pressable onPress={() => openLink(link.url)}>
-            <Text style={styles.linkText}>{link.label}</Text>
-          </Pressable>
-          {index < LINKS.length - 1 ? <Text style={styles.separator}>•</Text> : null}
-        </View>
-      ))}
+      <View style={styles.linksRow}>
+        {LINKS.map((link, index) => (
+          <View key={link.label} style={styles.linkRow}>
+            <Pressable onPress={() => openLink(link.url)}>
+              <Text style={styles.linkText}>{link.label}</Text>
+            </Pressable>
+            {index < LINKS.length - 1 ? <Text style={styles.separator}>•</Text> : null}
+          </View>
+        ))}
+      </View>
+      <Pressable onPress={() => openLink('mailto:support@styla.me')}>
+        <Text style={styles.emailText}>support@styla.me</Text>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   footer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingTop: 8,
@@ -40,6 +42,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FAF8F5',
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+  },
+  linksRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   linkRow: {
     flexDirection: 'row',
@@ -55,5 +63,11 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginHorizontal: 2,
     fontSize: 12,
+  },
+  emailText: {
+    color: '#6B7280',
+    fontSize: 12,
+    textDecorationLine: 'underline',
+    marginTop: 6,
   },
 });
