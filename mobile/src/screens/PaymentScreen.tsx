@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
+import { useAuth } from '../../context/AuthContext';
 import { usePaymentAccess } from '../../context/PaymentAccessContext';
+import { supabase } from '../../lib/supabase';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Payment'>;
 type Plan = 'style' | 'colour' | 'both';
@@ -13,13 +15,17 @@ const PRICES: Record<Plan, string> = {
   colour: '£6.99',
   both: '£24.99',
 };
+const WAIVER_TEXT =
+  'I agree that my digital content will be delivered immediately and I understand that I waive my 14-day right to cancel once delivery begins.';
 
 export function PaymentScreen({ navigation, route }: Props) {
   const { completePayment } = usePaymentAccess();
+  const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<Plan>(
     route.params.target === 'StyleAnalysis' ? 'style' : 'colour',
   );
   const [submitting, setSubmitting] = useState(false);
+  const [waiverAccepted, setWaiverAccepted] = useState(false);
 
   const destinationTitle = useMemo(
     () => (route.params.target === 'StyleAnalysis' ? 'Style Analysis' : 'Colour Analysis'),
@@ -27,10 +33,27 @@ export function PaymentScreen({ navigation, route }: Props) {
   );
 
   async function handlePay() {
+    if (!waiverAccepted) return;
     setSubmitting(true);
     try {
+      const orderId = `order_${Date.now()}_${selectedPlan}`;
+      if (!user?.id) {
+        throw new Error('You must be logged in to complete payment.');
+      }
       await completePayment(selectedPlan);
+      const { error } = await supabase.from('consent_log').insert({
+        user_id: user.id,
+        consented_at: new Date().toISOString(),
+        waiver_text: WAIVER_TEXT,
+        order_id: orderId,
+      });
+      if (error) {
+        throw error;
+      }
       navigation.replace(route.params.target);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Could not complete checkout.';
+      Alert.alert('Checkout error', message);
     } finally {
       setSubmitting(false);
     }
@@ -66,9 +89,19 @@ export function PaymentScreen({ navigation, route }: Props) {
       </Pressable>
 
       <Pressable
-        style={[styles.payButton, submitting ? styles.payButtonDisabled : null]}
+        style={styles.waiverRow}
+        onPress={() => setWaiverAccepted((prev) => !prev)}
+      >
+        <View style={[styles.checkbox, waiverAccepted ? styles.checkboxChecked : null]}>
+          {waiverAccepted ? <Text style={styles.checkboxTick}>✓</Text> : null}
+        </View>
+        <Text style={styles.waiverText}>{WAIVER_TEXT}</Text>
+      </Pressable>
+
+      <Pressable
+        style={[styles.payButton, submitting || !waiverAccepted ? styles.payButtonDisabled : null]}
         onPress={handlePay}
-        disabled={submitting}
+        disabled={submitting || !waiverAccepted}
       >
         {submitting ? (
           <ActivityIndicator color="#FAF8F5" />
@@ -135,5 +168,37 @@ const styles = StyleSheet.create({
     color: '#FAF8F5',
     fontSize: 16,
     fontWeight: '800',
+  },
+  waiverRow: {
+    marginTop: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#D3D1C7',
+    backgroundColor: '#FFFFFF',
+    marginTop: 2,
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    borderColor: '#C4956A',
+    backgroundColor: '#F8F2EB',
+  },
+  checkboxTick: {
+    color: '#C4956A',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  waiverText: {
+    flex: 1,
+    color: '#374151',
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
