@@ -48,7 +48,9 @@ export function PaymentScreen({ navigation, route }: Props) {
         order_id: orderId,
       });
       if (error) {
-        throw error;
+        // Do not block paid access if consent logging backend is misconfigured.
+        // eslint-disable-next-line no-console
+        console.warn('Consent log insert failed:', error.message);
       }
       navigation.replace(route.params.target);
     } catch (e) {
