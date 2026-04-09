@@ -21,16 +21,17 @@ const WAIVER_TEXT =
 export function PaymentScreen({ navigation, route }: Props) {
   const { completePayment } = usePaymentAccess();
   const { user } = useAuth();
-  const [selectedPlan, setSelectedPlan] = useState<Plan>(
-    route.params.target === 'StyleAnalysis' ? 'style' : 'colour',
-  );
+  const [selectedPlan, setSelectedPlan] = useState<Plan>(() => {
+    if (route.params.target === 'Bundle') return 'both';
+    return route.params.target === 'StyleAnalysis' ? 'style' : 'colour';
+  });
   const [submitting, setSubmitting] = useState(false);
   const [waiverAccepted, setWaiverAccepted] = useState(false);
 
-  const destinationTitle = useMemo(
-    () => (route.params.target === 'StyleAnalysis' ? 'Style Analysis' : 'Colour Analysis'),
-    [route.params.target],
-  );
+  const destinationTitle = useMemo(() => {
+    if (route.params.target === 'Bundle') return 'Style & Colour analyses';
+    return route.params.target === 'StyleAnalysis' ? 'Style Analysis' : 'Colour Analysis';
+  }, [route.params.target]);
 
   async function handlePay() {
     if (!waiverAccepted) return;
@@ -52,7 +53,17 @@ export function PaymentScreen({ navigation, route }: Props) {
         // eslint-disable-next-line no-console
         console.warn('Consent log insert failed:', error.message);
       }
-      navigation.replace(route.params.target);
+      if (route.params.target === 'Bundle') {
+        if (selectedPlan === 'both') {
+          navigation.replace('Home');
+        } else if (selectedPlan === 'style') {
+          navigation.replace('StyleAnalysis');
+        } else {
+          navigation.replace('ColourAnalysis');
+        }
+      } else {
+        navigation.replace(route.params.target);
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not complete checkout.';
       Alert.alert('Checkout error', message);

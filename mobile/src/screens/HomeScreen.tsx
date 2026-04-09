@@ -29,6 +29,11 @@ export function HomeScreen({ navigation }: Props) {
     navigation.navigate('Payment', { target: 'ColourAnalysis' });
   }
 
+  function openBundleOffer() {
+    if (loading) return;
+    navigation.navigate('Payment', { target: 'Bundle' });
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
@@ -56,7 +61,13 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.cardBody}>Upload or take a photo to find your season and palette.</Text>
           <Text style={styles.priceTag}>£6.99</Text>
         </Pressable>
-        <Text style={styles.bundleNote}>Bundle offer: both analyses for £24.99</Text>
+        <Pressable
+          style={({ pressed }) => [styles.bundleButton, pressed ? styles.bundleButtonPressed : null]}
+          onPress={openBundleOffer}
+        >
+          <Text style={styles.bundleButtonTitle}>Bundle offer</Text>
+          <Text style={styles.bundleButtonSubtitle}>Both analyses for £24.99</Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
@@ -130,10 +141,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  bundleNote: {
-    color: '#C4956A',
+  bundleButton: {
     marginTop: 14,
-    fontSize: 13,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(196, 149, 106, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 149, 106, 0.55)',
+    alignItems: 'center',
+  },
+  bundleButtonPressed: {
+    opacity: 0.88,
+  },
+  bundleButtonTitle: {
+    color: '#f8fafc',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  bundleButtonSubtitle: {
+    color: '#C4956A',
+    marginTop: 4,
+    fontSize: 14,
     fontWeight: '700',
   },
 });

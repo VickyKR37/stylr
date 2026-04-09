@@ -18,7 +18,7 @@ export type RootStackParamList = {
   Home: undefined;
   ColourAnalysis: undefined;
   StyleAnalysis: undefined;
-  Payment: { target: 'StyleAnalysis' | 'ColourAnalysis' };
+  Payment: { target: 'StyleAnalysis' | 'ColourAnalysis' | 'Bundle' };
 };
 
 export type AuthStackParamList = {
