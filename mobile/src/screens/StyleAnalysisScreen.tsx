@@ -336,6 +336,20 @@ export function StyleAnalysisScreen() {
           the native demo).
         </Text>
 
+        <Pressable
+          style={[
+            styles.primaryButton,
+            styles.reportDownloadButton,
+            isDownloadingPdf ? styles.disabledButton : null,
+          ]}
+          onPress={onDownloadPdf}
+          disabled={isDownloadingPdf}
+        >
+          <Text style={styles.primaryButtonText}>
+            {isDownloadingPdf ? 'Preparing PDF…' : 'Download PDF'}
+          </Text>
+        </Pressable>
+
         <View style={styles.reportShell}>
           <ScrollView style={styles.reportScroll} contentContainerStyle={styles.reportScrollContent} nestedScrollEnabled>
             {report.split('\n').map((rawLine, index) => {
@@ -368,16 +382,6 @@ export function StyleAnalysisScreen() {
             })}
           </ScrollView>
         </View>
-
-        <Pressable
-          style={[styles.primaryButton, isDownloadingPdf ? styles.disabledButton : null]}
-          onPress={onDownloadPdf}
-          disabled={isDownloadingPdf}
-        >
-          <Text style={styles.primaryButtonText}>
-            {isDownloadingPdf ? 'Preparing PDF…' : 'Download PDF'}
-          </Text>
-        </Pressable>
       </ScrollView>
     );
   }
@@ -697,6 +701,12 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.55,
+  },
+  reportDownloadButton: {
+    marginTop: 14,
+    alignSelf: 'stretch',
+    flexGrow: 0,
+    flexShrink: 0,
   },
   reportShell: {
     marginTop: 14,
