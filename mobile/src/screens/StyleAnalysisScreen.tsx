@@ -363,6 +363,13 @@ export function StyleAnalysisScreen() {
           </Text>
         </Pressable>
 
+        <Pressable
+          style={[styles.secondaryButton, styles.reportReviewButton]}
+          onPress={() => void onLeaveReview()}
+        >
+          <Text style={styles.secondaryButtonText}>Leave a Review</Text>
+        </Pressable>
+
         <View style={styles.reportShell}>
           <ScrollView style={styles.reportScroll} contentContainerStyle={styles.reportScrollContent} nestedScrollEnabled>
             {report.split('\n').map((rawLine, index) => {
@@ -729,7 +736,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   reportReviewButton: {
-    marginTop: 14,
+    marginTop: 10,
     alignSelf: 'stretch',
     width: '100%',
   },
