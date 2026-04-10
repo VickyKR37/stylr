@@ -1,14 +1,16 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PaymentAccessProvider } from './context/PaymentAccessContext';
+import { navigationRef } from './navigationRef';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import { SignupScreen } from './screens/auth/SignupScreen';
 import { LegalLinksFooter } from './src/components/LegalLinksFooter';
+import { AboutScreen } from './src/screens/AboutScreen';
 import { ColourAnalysisScreen } from './src/screens/ColourAnalysisScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { PaymentScreen } from './src/screens/PaymentScreen';
@@ -16,6 +18,7 @@ import { StyleAnalysisScreen } from './src/screens/StyleAnalysisScreen';
 
 export type RootStackParamList = {
   Home: undefined;
+  About: undefined;
   ColourAnalysis: undefined;
   StyleAnalysis: undefined;
   Payment: { target: 'StyleAnalysis' | 'ColourAnalysis' | 'Bundle' };
@@ -24,15 +27,32 @@ export type RootStackParamList = {
 export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
+  About: undefined;
 };
 
 const AppStack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 
+const aboutHeaderButton = ({ navigation }: { navigation: { navigate: (name: 'About') => void } }) => (
+  <Pressable onPress={() => navigation.navigate('About')} hitSlop={8} style={styles.aboutHeaderBtn}>
+    <Text style={styles.aboutHeaderText}>About</Text>
+  </Pressable>
+);
+
 function AppNavigator() {
   return (
-    <AppStack.Navigator initialRouteName="Home">
+    <AppStack.Navigator
+      initialRouteName="Home"
+      screenOptions={({ navigation }) => ({
+        headerRight: () => aboutHeaderButton({ navigation }),
+      })}
+    >
       <AppStack.Screen name="Home" component={HomeScreen} options={{ title: 'Styla' }} />
+      <AppStack.Screen
+        name="About"
+        component={AboutScreen}
+        options={{ title: 'About', headerRight: () => null }}
+      />
       <AppStack.Screen
         name="ColourAnalysis"
         component={ColourAnalysisScreen}
@@ -50,9 +70,19 @@ function AppNavigator() {
 
 function AuthNavigator() {
   return (
-    <AuthStack.Navigator initialRouteName="Login">
+    <AuthStack.Navigator
+      initialRouteName="Login"
+      screenOptions={({ navigation }) => ({
+        headerRight: () => aboutHeaderButton({ navigation }),
+      })}
+    >
       <AuthStack.Screen name="Login" component={LoginScreen} options={{ title: 'Login' }} />
       <AuthStack.Screen name="Signup" component={SignupScreen} options={{ title: 'Sign up' }} />
+      <AuthStack.Screen
+        name="About"
+        component={AboutScreen}
+        options={{ title: 'About', headerRight: () => null }}
+      />
     </AuthStack.Navigator>
   );
 }
@@ -68,7 +98,9 @@ function RootNavigation() {
     );
   }
 
-  return <NavigationContainer>{session ? <AppNavigator /> : <AuthNavigator />}</NavigationContainer>;
+  return (
+    <NavigationContainer ref={navigationRef}>{session ? <AppNavigator /> : <AuthNavigator />}</NavigationContainer>
+  );
 }
 
 export default function App() {
@@ -101,5 +133,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FAF8F5',
+  },
+  aboutHeaderBtn: {
+    marginRight: 4,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  aboutHeaderText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#C4956A',
   },
 });

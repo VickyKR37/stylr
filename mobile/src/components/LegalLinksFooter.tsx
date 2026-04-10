@@ -1,9 +1,10 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
-const LINKS = [
-  { label: 'About', url: 'https://example.com/about' },
-  { label: 'Terms & Conditions', url: 'https://example.com/terms' },
-  { label: 'Privacy Policy', url: 'https://example.com/privacy' },
+import { navigateToAbout } from '../../navigationRef';
+
+const EXTERNAL_LINKS = [
+  { label: 'Terms & Conditions', url: 'https://styla.me/terms' },
+  { label: 'Privacy Policy', url: 'https://styla.me/privacy' },
 ] as const;
 
 export function LegalLinksFooter() {
@@ -17,12 +18,18 @@ export function LegalLinksFooter() {
   return (
     <View style={styles.footer}>
       <View style={styles.linksRow}>
-        {LINKS.map((link, index) => (
+        <View style={styles.linkRow}>
+          <Pressable onPress={navigateToAbout}>
+            <Text style={styles.linkText}>About</Text>
+          </Pressable>
+          <Text style={styles.separator}>•</Text>
+        </View>
+        {EXTERNAL_LINKS.map((link, index) => (
           <View key={link.label} style={styles.linkRow}>
             <Pressable onPress={() => openLink(link.url)}>
               <Text style={styles.linkText}>{link.label}</Text>
             </Pressable>
-            {index < LINKS.length - 1 ? <Text style={styles.separator}>•</Text> : null}
+            {index < EXTERNAL_LINKS.length - 1 ? <Text style={styles.separator}>•</Text> : null}
           </View>
         ))}
       </View>
