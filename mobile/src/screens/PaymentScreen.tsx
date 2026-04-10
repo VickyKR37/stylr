@@ -207,7 +207,7 @@ export function PaymentScreen({ navigation, route }: Props) {
         <Text style={styles.waiverText}>{WAIVER_TEXT}</Text>
       </Pressable>
 
-      <Text style={styles.discountLabel}>Beta / discount code</Text>
+      <Text style={styles.discountLabel}>Discount Code</Text>
       <View style={styles.discountRow}>
         <TextInput
           style={styles.discountInput}

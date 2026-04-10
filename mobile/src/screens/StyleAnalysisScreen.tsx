@@ -291,11 +291,15 @@ export function StyleAnalysisScreen() {
       p.bullet::before { content: "• "; color: #4f46e5; }
       .spacer { height: 6px; }
       hr { border: none; border-top: 1px solid #cbd5e1; margin: 10px 0; }
+      p.closing { margin-top: 22px; padding-top: 14px; border-top: 1px solid #cbd5e1; font-size: 13px; color: #334155; }
     </style>
   </head>
   <body>
     <h1>Your Style Report</h1>
     ${contentHtml}
+    <p class="closing">${escapeHtml(
+      'Now you know exactly what works for you. If Styla delivered — tell someone. Leave a review on Google Play and help another woman stop guessing.',
+    )}</p>
   </body>
 </html>`;
   }
