@@ -312,7 +312,8 @@ export function StyleAnalysisScreen() {
         html: buildPdfHtml(report),
       });
       const sourceFile = new File(uri);
-      const targetFile = new File(Paths.cache, 'style-report.pdf');
+      // Unique name so repeat downloads don’t fail when the previous PDF still exists in cache.
+      const targetFile = new File(Paths.cache, `style-report-${Date.now()}.pdf`);
       sourceFile.copy(targetFile);
       const targetUri = targetFile.uri;
       const sharingAvailable = await Sharing.isAvailableAsync();
