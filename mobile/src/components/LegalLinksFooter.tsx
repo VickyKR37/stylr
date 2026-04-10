@@ -1,5 +1,6 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { FAQ_URL } from '../constants/externalLinks';
 import { navigateToAbout } from '../../navigationRef';
 
 const EXTERNAL_LINKS = [
@@ -21,6 +22,12 @@ export function LegalLinksFooter() {
         <View style={styles.linkRow}>
           <Pressable onPress={navigateToAbout}>
             <Text style={styles.linkText}>About</Text>
+          </Pressable>
+          <Text style={styles.separator}>•</Text>
+        </View>
+        <View style={styles.linkRow}>
+          <Pressable onPress={() => openLink(FAQ_URL)}>
+            <Text style={styles.linkText}>FAQ</Text>
           </Pressable>
           <Text style={styles.separator}>•</Text>
         </View>

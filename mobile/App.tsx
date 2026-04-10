@@ -1,7 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -10,6 +10,7 @@ import { navigationRef } from './navigationRef';
 import { LoginScreen } from './screens/auth/LoginScreen';
 import { SignupScreen } from './screens/auth/SignupScreen';
 import { LegalLinksFooter } from './src/components/LegalLinksFooter';
+import { FAQ_URL } from './src/constants/externalLinks';
 import { AboutScreen } from './src/screens/AboutScreen';
 import { ColourAnalysisScreen } from './src/screens/ColourAnalysisScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
@@ -134,8 +135,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#FAF8F5',
   },
+  headerLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+    gap: 4,
+  },
   aboutHeaderBtn: {
-    marginRight: 4,
     paddingVertical: 4,
     paddingHorizontal: 4,
   },
