@@ -332,8 +332,7 @@ export function StyleAnalysisScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.reportTitle}>Your Style Report</Text>
         <Text style={styles.reportIntro}>
-          Based on your answers, here’s your logic-based recommendation (no payment/email step in
-          the native demo).
+          Based on your answers, here’s your style analysis report.
         </Text>
 
         <Pressable
