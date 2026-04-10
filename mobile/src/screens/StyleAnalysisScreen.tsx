@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +12,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 
+import { GOOGLE_PLAY_REVIEW_URL } from '../constants/externalLinks';
 import { generateLogicBasedReport } from '../features/styleAnalysis/generateLogicBasedReport';
 import type {
   BodyShape,
@@ -327,6 +329,13 @@ export function StyleAnalysisScreen() {
     }
   }
 
+  async function onLeaveReview() {
+    const supported = await Linking.canOpenURL(GOOGLE_PLAY_REVIEW_URL);
+    if (supported) {
+      await Linking.openURL(GOOGLE_PLAY_REVIEW_URL);
+    }
+  }
+
   if (report) {
     return (
       <ScrollView contentContainerStyle={styles.container}>
@@ -381,6 +390,13 @@ export function StyleAnalysisScreen() {
             })}
           </ScrollView>
         </View>
+
+        <Pressable
+          style={[styles.secondaryButton, styles.reportReviewButton]}
+          onPress={() => void onLeaveReview()}
+        >
+          <Text style={styles.secondaryButtonText}>Leave a Review</Text>
+        </Pressable>
       </ScrollView>
     );
   }
@@ -706,6 +722,11 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     flexGrow: 0,
     flexShrink: 0,
+  },
+  reportReviewButton: {
+    marginTop: 14,
+    alignSelf: 'stretch',
+    width: '100%',
   },
   reportShell: {
     marginTop: 14,

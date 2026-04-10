@@ -1,5 +1,14 @@
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
@@ -18,6 +27,8 @@ const PRICES: Record<Plan, string> = {
 const WAIVER_TEXT =
   'I agree that my digital content will be delivered immediately and I understand that I waive my 14-day right to cancel once delivery begins.';
 
+const INVALID_CODE_MESSAGE = "That code isn't valid. Please check and try again.";
+
 export function PaymentScreen({ navigation, route }: Props) {
   const { completePayment } = usePaymentAccess();
   const { user } = useAuth();
@@ -27,11 +38,42 @@ export function PaymentScreen({ navigation, route }: Props) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [waiverAccepted, setWaiverAccepted] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [applyingDiscount, setApplyingDiscount] = useState(false);
 
   const destinationTitle = useMemo(() => {
     if (route.params.target === 'Bundle') return 'Style & Colour analyses';
     return route.params.target === 'StyleAnalysis' ? 'Style Analysis' : 'Colour Analysis';
   }, [route.params.target]);
+
+  function navigateAfterPurchase() {
+    if (route.params.target === 'Bundle') {
+      if (selectedPlan === 'both') {
+        navigation.replace('Home');
+      } else if (selectedPlan === 'style') {
+        navigation.replace('StyleAnalysis');
+      } else {
+        navigation.replace('ColourAnalysis');
+      }
+    } else {
+      navigation.replace(route.params.target);
+    }
+  }
+
+  async function logConsent(orderId: string) {
+    if (!user?.id) return;
+    const { error } = await supabase.from('consent_log').insert({
+      user_id: user.id,
+      consented_at: new Date().toISOString(),
+      waiver_text: WAIVER_TEXT,
+      order_id: orderId,
+    });
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.warn('Consent log insert failed:', error.message);
+    }
+  }
 
   async function handlePay() {
     if (!waiverAccepted) return;
@@ -42,28 +84,8 @@ export function PaymentScreen({ navigation, route }: Props) {
         throw new Error('You must be logged in to complete payment.');
       }
       await completePayment(selectedPlan);
-      const { error } = await supabase.from('consent_log').insert({
-        user_id: user.id,
-        consented_at: new Date().toISOString(),
-        waiver_text: WAIVER_TEXT,
-        order_id: orderId,
-      });
-      if (error) {
-        // Do not block paid access if consent logging backend is misconfigured.
-        // eslint-disable-next-line no-console
-        console.warn('Consent log insert failed:', error.message);
-      }
-      if (route.params.target === 'Bundle') {
-        if (selectedPlan === 'both') {
-          navigation.replace('Home');
-        } else if (selectedPlan === 'style') {
-          navigation.replace('StyleAnalysis');
-        } else {
-          navigation.replace('ColourAnalysis');
-        }
-      } else {
-        navigation.replace(route.params.target);
-      }
+      await logConsent(orderId);
+      navigateAfterPurchase();
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Could not complete checkout.';
       Alert.alert('Checkout error', message);
@@ -72,8 +94,82 @@ export function PaymentScreen({ navigation, route }: Props) {
     }
   }
 
+  async function handleApplyDiscount() {
+    setDiscountError(null);
+    const trimmed = discountCode.trim();
+    if (!trimmed || /[%_]/.test(trimmed)) {
+      setDiscountError(INVALID_CODE_MESSAGE);
+      return;
+    }
+    if (!waiverAccepted) {
+      setDiscountError('Please accept the waiver above to apply a code.');
+      return;
+    }
+    if (!user?.id) {
+      setDiscountError('You must be logged in to apply a code.');
+      return;
+    }
+
+    setApplyingDiscount(true);
+    try {
+      const { data, error } = await supabase
+        .from('discount_codes')
+        .select('id, code, is_active, uses_remaining')
+        .ilike('code', trimmed)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      const row = data;
+      if (!row) {
+        setDiscountError(INVALID_CODE_MESSAGE);
+        return;
+      }
+      if (row.uses_remaining !== null && row.uses_remaining <= 0) {
+        setDiscountError(INVALID_CODE_MESSAGE);
+        return;
+      }
+
+      if (row.uses_remaining !== null) {
+        const nextUses = row.uses_remaining - 1;
+        const { data: updatedRows, error: updateError } = await supabase
+          .from('discount_codes')
+          .update({ uses_remaining: nextUses })
+          .eq('id', row.id)
+          .eq('uses_remaining', row.uses_remaining)
+          .select('id');
+
+        if (updateError || !updatedRows?.length) {
+          setDiscountError(INVALID_CODE_MESSAGE);
+          return;
+        }
+      }
+
+      await completePayment(selectedPlan);
+      const orderId = `beta_${Date.now()}_${selectedPlan}_${row.id}`;
+      await logConsent(orderId);
+
+      Alert.alert('Success', 'Beta code applied — enjoy your free analysis!', [
+        { text: 'OK', onPress: () => navigateAfterPurchase() },
+      ]);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('Discount code apply failed:', e);
+      setDiscountError('Could not verify that code. Please try again.');
+    } finally {
+      setApplyingDiscount(false);
+    }
+  }
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.scroll}
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={styles.title}>Payment required</Text>
       <Text style={styles.subtitle}>Choose a payment option to access {destinationTitle}.</Text>
 
@@ -111,6 +207,35 @@ export function PaymentScreen({ navigation, route }: Props) {
         <Text style={styles.waiverText}>{WAIVER_TEXT}</Text>
       </Pressable>
 
+      <Text style={styles.discountLabel}>Beta / discount code</Text>
+      <View style={styles.discountRow}>
+        <TextInput
+          style={styles.discountInput}
+          value={discountCode}
+          onChangeText={(t) => {
+            setDiscountCode(t);
+            if (discountError) setDiscountError(null);
+          }}
+          placeholder="Enter code"
+          placeholderTextColor="#9C9A90"
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!applyingDiscount}
+        />
+        <Pressable
+          style={[styles.applyButton, applyingDiscount ? styles.applyButtonDisabled : null]}
+          onPress={() => void handleApplyDiscount()}
+          disabled={applyingDiscount}
+        >
+          {applyingDiscount ? (
+            <ActivityIndicator color="#C4956A" />
+          ) : (
+            <Text style={styles.applyButtonText}>Apply</Text>
+          )}
+        </Pressable>
+      </View>
+      {discountError ? <Text style={styles.discountError}>{discountError}</Text> : null}
+
       <Pressable
         style={[styles.payButton, submitting || !waiverAccepted ? styles.payButtonDisabled : null]}
         onPress={handlePay}
@@ -122,15 +247,20 @@ export function PaymentScreen({ navigation, route }: Props) {
           <Text style={styles.payButtonText}>Pay {PRICES[selectedPlan]}</Text>
         )}
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scroll: {
     flex: 1,
     backgroundColor: '#FAF8F5',
+  },
+  container: {
+    flexGrow: 1,
+    backgroundColor: '#FAF8F5',
     padding: 20,
+    paddingBottom: 28,
   },
   title: {
     color: '#2C2C2A',
@@ -211,6 +341,54 @@ const styles = StyleSheet.create({
   waiverText: {
     flex: 1,
     color: '#374151',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  discountLabel: {
+    marginTop: 16,
+    color: '#2C2C2A',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  discountRow: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  discountInput: {
+    flex: 1,
+    minHeight: 46,
+    borderWidth: 1,
+    borderColor: '#D3D1C7',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    backgroundColor: '#FFFFFF',
+    color: '#2C2C2A',
+    fontSize: 15,
+  },
+  applyButton: {
+    minWidth: 88,
+    minHeight: 46,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C4956A',
+    backgroundColor: '#F8F2EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  applyButtonDisabled: {
+    opacity: 0.65,
+  },
+  applyButtonText: {
+    color: '#C4956A',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  discountError: {
+    marginTop: 8,
+    color: '#B3261E',
     fontSize: 13,
     lineHeight: 18,
   },
