@@ -1,12 +1,3 @@
-// ShareCard.js
-// Place this file in: /components/ShareCard.js
-//
-// Before using, install dependencies:
-//   npx expo install react-native-view-shot
-//   npx expo install expo-font
-//   npx expo install @expo-google-fonts/cormorant-garamond
-//   npx expo install @expo-google-fonts/dm-sans
-
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
@@ -41,8 +32,12 @@ const COLOUR_BAR = [
   '#6B8C7A',
 ];
 
-export default function ShareCard({ shareButtonVisible = true }) {
-  const cardRef = useRef(null);
+type ShareCardProps = {
+  shareButtonVisible?: boolean;
+};
+
+export default function ShareCard({ shareButtonVisible = true }: ShareCardProps) {
+  const cardRef = useRef<ViewShot | null>(null);
   const shareOpen = useRef(new Animated.Value(shareButtonVisible ? 1 : 0)).current;
 
   const [fontsLoaded] = useFonts({
@@ -99,12 +94,8 @@ export default function ShareCard({ shareButtonVisible = true }) {
 
   return (
     <View style={styles.screen}>
-
-      {/* ViewShot wraps only the card — the share button is excluded from the image */}
       <ViewShot ref={cardRef} options={{ format: 'png', quality: 1 }}>
         <View style={styles.card}>
-
-          {/* Colour bar */}
           <View style={styles.colourBar}>
             {COLOUR_BAR.map((colour, i) => (
               <View key={i} style={[styles.barSegment, { backgroundColor: colour }]} />
@@ -112,28 +103,24 @@ export default function ShareCard({ shareButtonVisible = true }) {
           </View>
 
           <View style={styles.body}>
-
-            {/* Stars */}
             <View style={styles.starsRow}>
               {[...Array(5)].map((_, i) => (
-                <Text key={i} style={styles.star}>★</Text>
+                <Text key={i} style={styles.star}>
+                  ★
+                </Text>
               ))}
             </View>
 
-            {/* Headline */}
             <Text style={styles.headline}>
               "I finally know my colours — and how to dress my shape."
             </Text>
 
-            {/* Body copy */}
             <Text style={styles.subCopy}>
               Got my personalised colour season and body shape analysis — the kind that normally costs £400+ with a stylist. Done in minutes, on my phone.
             </Text>
 
-            {/* Divider */}
             <View style={styles.divider} />
 
-            {/* App row */}
             <View style={styles.appRow}>
               <View style={styles.appIcon}>
                 <Text style={styles.appIconLetter}>S</Text>
@@ -144,16 +131,13 @@ export default function ShareCard({ shareButtonVisible = true }) {
               </View>
             </View>
 
-            {/* CTA */}
             <View style={styles.ctaButton}>
               <Text style={styles.ctaText}>Download on Google Play →</Text>
             </View>
-
           </View>
         </View>
       </ViewShot>
 
-      {/* Share trigger — outside ViewShot so it doesn't appear in the image */}
       <Animated.View
         style={[styles.shareButtonSlot, { marginTop: shareMarginTop, height: shareHeight }]}
         pointerEvents={shareButtonVisible ? 'auto' : 'none'}
@@ -167,7 +151,6 @@ export default function ShareCard({ shareButtonVisible = true }) {
           <Text style={styles.shareButtonText}>Share your result</Text>
         </TouchableOpacity>
       </Animated.View>
-
     </View>
   );
 }
@@ -178,7 +161,6 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
   },
 
-  // Card
   card: {
     width: 320,
     backgroundColor: '#FFFFFF',
@@ -188,7 +170,6 @@ const styles = StyleSheet.create({
     borderColor: '#E8E4DF',
   },
 
-  // Colour bar
   colourBar: {
     flexDirection: 'row',
     height: 4,
@@ -197,14 +178,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Card body
   body: {
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 22,
   },
 
-  // Stars
   starsRow: {
     flexDirection: 'row',
     gap: 3,
@@ -215,7 +194,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  // Headline
   headline: {
     fontFamily: 'CormorantGaramond_500Medium',
     fontSize: 22,
@@ -224,7 +202,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  // Body copy
   subCopy: {
     fontFamily: 'DMSans_300Light',
     fontSize: 12,
@@ -233,14 +210,12 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
 
-  // Divider
   divider: {
     height: 0.5,
     backgroundColor: '#EEEBE6',
     marginBottom: 14,
   },
 
-  // App row
   appRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -271,7 +246,6 @@ const styles = StyleSheet.create({
     color: '#9A8878',
   },
 
-  // CTA button (outlined)
   ctaButton: {
     borderWidth: 1,
     borderColor: '#2A1F14',
@@ -292,7 +266,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
 
-  // Share button (below the card, not captured in screenshot)
   shareButton: {
     backgroundColor: '#2A1F14',
     borderRadius: 10,
