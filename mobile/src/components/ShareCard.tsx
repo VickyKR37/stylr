@@ -1,14 +1,15 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import {
+  Alert,
   Animated,
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Share,
   Platform,
 } from 'react-native';
 import * as Sharing from 'expo-sharing';
+import RNShare, { Social } from 'react-native-share';
 import ViewShot from 'react-native-view-shot';
 import {
   useFonts,
@@ -64,6 +65,59 @@ async function shareImageWithExpo(uri: string) {
   }
 }
 
+const FACEBOOK_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID ?? '';
+
+async function shareToFacebookStory(fileUri: string) {
+  if (!FACEBOOK_APP_ID) {
+    Alert.alert(
+      'Facebook Story',
+      'Add EXPO_PUBLIC_FACEBOOK_APP_ID to your environment (Facebook app ID) so Stories sharing can open the Facebook app.',
+    );
+    return;
+  }
+  try {
+    await RNShare.shareSingle({
+      appId: FACEBOOK_APP_ID,
+      social: Social.FacebookStories,
+      backgroundImage: fileUri,
+    });
+  } catch (e) {
+    console.warn('Facebook Story share', e);
+    const message = e instanceof Error ? e.message : 'Could not open Facebook Stories.';
+    Alert.alert('Facebook', message);
+  }
+}
+
+/**
+ * WhatsApp does not expose a public “Status” intent. This uses the WhatsApp image share target
+ * (no chat message) so the image opens in WhatsApp; from there many users can set it as Status.
+ */
+async function shareToWhatsAppStatus(fileUri: string) {
+  try {
+    await RNShare.shareSingle({
+      social: Social.Whatsapp,
+      url: fileUri,
+      type: 'image/png',
+      filename: 'styla-card.png',
+    });
+  } catch (e) {
+    console.warn('WhatsApp share', e);
+    try {
+      await shareImageWithExpo(fileUri);
+    } catch {
+      Alert.alert('WhatsApp', 'Could not open WhatsApp with this image.');
+    }
+  }
+}
+
+function promptStoryDestinations(fileUri: string) {
+  Alert.alert('Share', 'Choose where to share your card', [
+    { text: 'Facebook Story', onPress: () => void shareToFacebookStory(fileUri) },
+    { text: 'WhatsApp Status', onPress: () => void shareToWhatsAppStatus(fileUri) },
+    { text: 'Cancel', style: 'cancel' },
+  ]);
+}
+
 const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(function ShareCard(
   { shareButtonVisible = true, hideShareButton = false },
   ref,
@@ -90,43 +144,19 @@ const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(function ShareCard(
   }, [shareButtonVisible, shareOpen, hideShareButton]);
 
   const handleShare = useCallback(async () => {
-    let fileUri: string | null = null;
     try {
       const captured = await cardRef.current?.capture?.();
       if (!captured) return;
-      fileUri = normalizeCaptureUri(captured);
+      const fileUri = normalizeCaptureUri(captured);
 
-      if (Platform.OS === 'android') {
-        try {
-          // Prefer `url` so the intent attaches the temp PNG; avoid mixing `message` here — some OEMs drop the image.
-          await Share.share({
-            title: 'Share',
-            url: fileUri,
-          });
-        } catch (shareErr) {
-          console.warn('Share API did not complete; falling back to expo-sharing', shareErr);
-          await shareImageWithExpo(fileUri);
-        }
-      } else {
-        try {
-          await Share.share({
-            url: fileUri,
-            message: 'Check out Styla — colour and style analysis app',
-          });
-        } catch (shareErr) {
-          console.warn('Share API did not complete; falling back to expo-sharing', shareErr);
-          await shareImageWithExpo(fileUri);
-        }
+      if (Platform.OS === 'web') {
+        await shareImageWithExpo(fileUri);
+        return;
       }
+
+      promptStoryDestinations(fileUri);
     } catch (error) {
       console.error('Share failed:', error);
-      if (fileUri) {
-        try {
-          await shareImageWithExpo(fileUri);
-        } catch (fallbackErr) {
-          console.error('expo-sharing fallback failed:', fallbackErr);
-        }
-      }
     }
   }, []);
 
