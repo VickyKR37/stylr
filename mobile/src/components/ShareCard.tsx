@@ -52,7 +52,7 @@ async function shareImageWithExpo(uri: string) {
   if (await Sharing.isAvailableAsync()) {
     await Sharing.shareAsync(uri, {
       mimeType: 'image/png',
-      dialogTitle: 'Share your result',
+      dialogTitle: 'Share',
     });
   }
 }
@@ -89,7 +89,7 @@ export default function ShareCard({ shareButtonVisible = true }: ShareCardProps)
         try {
           // Prefer `url` so the intent attaches the temp PNG; avoid mixing `message` here — some OEMs drop the image.
           await Share.share({
-            title: 'Share your result',
+            title: 'Share',
             url: fileUri,
           });
         } catch (shareErr) {
@@ -186,7 +186,7 @@ export default function ShareCard({ shareButtonVisible = true }: ShareCardProps)
           activeOpacity={0.85}
           disabled={!shareButtonVisible}
         >
-          <Text style={styles.shareButtonText}>Share your result</Text>
+          <Text style={styles.shareButtonText}>Share</Text>
         </TouchableOpacity>
       </Animated.View>
     </View>
