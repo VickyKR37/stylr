@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -7,11 +7,14 @@ import {
   StyleSheet,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 
+import ShareCard from '../components/ShareCard';
 import { GOOGLE_PLAY_REVIEW_URL } from '../constants/externalLinks';
 import { generateLogicBasedReport } from '../features/styleAnalysis/generateLogicBasedReport';
 import type {
@@ -148,8 +151,31 @@ export function StyleAnalysisScreen() {
   const [report, setReport] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [showShareButton, setShowShareButton] = useState(false);
+  const [reportViewportHeight, setReportViewportHeight] = useState(0);
+  const [reportContentHeight, setReportContentHeight] = useState(0);
 
   const progress = useMemo(() => ((step + 1) / 4) * 100, [step]);
+
+  function updateShareVisibilityFromScrollEvent(e: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const maxScroll = Math.max(0, contentSize.height - layoutMeasurement.height);
+    if (maxScroll <= 0) {
+      setShowShareButton(true);
+      return;
+    }
+    if (contentOffset.y >= maxScroll / 2) {
+      setShowShareButton(true);
+    }
+  }
+
+  useEffect(() => {
+    if (reportViewportHeight <= 0 || reportContentHeight <= 0) return;
+    const maxScroll = Math.max(0, reportContentHeight - reportViewportHeight);
+    if (maxScroll <= 0) {
+      setShowShareButton(true);
+    }
+  }, [reportViewportHeight, reportContentHeight]);
 
   function setAnswer<K extends keyof QuestionnaireFormState>(key: K, value: QuestionnaireFormState[K]) {
     setAnswers((prev) => ({ ...prev, [key]: value }));
@@ -371,7 +397,15 @@ export function StyleAnalysisScreen() {
         </Pressable>
 
         <View style={styles.reportShell}>
-          <ScrollView style={styles.reportScroll} contentContainerStyle={styles.reportScrollContent} nestedScrollEnabled>
+          <ScrollView
+            style={styles.reportScroll}
+            contentContainerStyle={styles.reportScrollContent}
+            nestedScrollEnabled
+            scrollEventThrottle={16}
+            onLayout={(ev) => setReportViewportHeight(ev.nativeEvent.layout.height)}
+            onContentSizeChange={(_, h) => setReportContentHeight(h)}
+            onScroll={updateShareVisibilityFromScrollEvent}
+          >
             {report.split('\n').map((rawLine, index) => {
               const line = rawLine.trim();
               if (!line) {
@@ -401,6 +435,8 @@ export function StyleAnalysisScreen() {
               );
             })}
           </ScrollView>
+
+          <ShareCard shareButtonVisible={showShareButton} />
         </View>
 
         <Pressable

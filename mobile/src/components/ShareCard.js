@@ -7,8 +7,9 @@
 //   npx expo install @expo-google-fonts/cormorant-garamond
 //   npx expo install @expo-google-fonts/dm-sans
 
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
+  Animated,
   View,
   Text,
   StyleSheet,
@@ -16,6 +17,7 @@ import {
   Share,
   Platform,
 } from 'react-native';
+import * as Sharing from 'expo-sharing';
 import ViewShot from 'react-native-view-shot';
 import {
   useFonts,
@@ -39,8 +41,9 @@ const COLOUR_BAR = [
   '#6B8C7A',
 ];
 
-export default function ShareCard() {
+export default function ShareCard({ shareButtonVisible = true }) {
   const cardRef = useRef(null);
+  const shareOpen = useRef(new Animated.Value(shareButtonVisible ? 1 : 0)).current;
 
   const [fontsLoaded] = useFonts({
     CormorantGaramond_400Regular_Italic,
@@ -50,9 +53,29 @@ export default function ShareCard() {
     DMSans_500Medium,
   });
 
+  useEffect(() => {
+    Animated.spring(shareOpen, {
+      toValue: shareButtonVisible ? 1 : 0,
+      useNativeDriver: false,
+      friction: 9,
+      tension: 80,
+    }).start();
+  }, [shareButtonVisible, shareOpen]);
+
   const handleShare = async () => {
     try {
-      const uri = await cardRef.current.capture();
+      const uri = await cardRef.current?.capture?.();
+      if (!uri) return;
+
+      const sharingAvailable = await Sharing.isAvailableAsync();
+      if (sharingAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'image/png',
+          dialogTitle: 'Share your result',
+        });
+        return;
+      }
+
       await Share.share(
         Platform.OS === 'android'
           ? { message: 'Check out Styla — colour and style analysis app', url: uri }
@@ -64,6 +87,15 @@ export default function ShareCard() {
   };
 
   if (!fontsLoaded) return null;
+
+  const shareMarginTop = shareOpen.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 20],
+  });
+  const shareHeight = shareOpen.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 56],
+  });
 
   return (
     <View style={styles.screen}>
@@ -122,9 +154,19 @@ export default function ShareCard() {
       </ViewShot>
 
       {/* Share trigger — outside ViewShot so it doesn't appear in the image */}
-      <TouchableOpacity style={styles.shareButton} onPress={handleShare} activeOpacity={0.85}>
-        <Text style={styles.shareButtonText}>Share your result</Text>
-      </TouchableOpacity>
+      <Animated.View
+        style={[styles.shareButtonSlot, { marginTop: shareMarginTop, height: shareHeight }]}
+        pointerEvents={shareButtonVisible ? 'auto' : 'none'}
+      >
+        <TouchableOpacity
+          style={styles.shareButton}
+          onPress={handleShare}
+          activeOpacity={0.85}
+          disabled={!shareButtonVisible}
+        >
+          <Text style={styles.shareButtonText}>Share your result</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
     </View>
   );
@@ -245,9 +287,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
+  shareButtonSlot: {
+    overflow: 'hidden',
+    alignSelf: 'center',
+  },
+
   // Share button (below the card, not captured in screenshot)
   shareButton: {
-    marginTop: 20,
     backgroundColor: '#2A1F14',
     borderRadius: 10,
     paddingVertical: 13,
