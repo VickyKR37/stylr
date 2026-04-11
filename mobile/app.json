@@ -30,15 +30,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      [
-        "react-native-share",
-        {
-          "ios": ["fb", "facebook-stories", "whatsapp"],
-          "android": ["com.facebook.katana", "com.whatsapp"]
-        }
-      ]
-    ]
+    }
   }
 }

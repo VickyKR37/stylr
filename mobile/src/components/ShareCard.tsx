@@ -6,10 +6,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Share,
   Platform,
 } from 'react-native';
 import * as Sharing from 'expo-sharing';
-import RNShare, { Social } from 'react-native-share';
 import ViewShot from 'react-native-view-shot';
 import {
   useFonts,
@@ -65,57 +65,47 @@ async function shareImageWithExpo(uri: string) {
   }
 }
 
-const FACEBOOK_APP_ID = process.env.EXPO_PUBLIC_FACEBOOK_APP_ID ?? '';
-
-async function shareToFacebookStory(fileUri: string) {
-  if (!FACEBOOK_APP_ID) {
-    Alert.alert(
-      'Facebook Story',
-      'Add EXPO_PUBLIC_FACEBOOK_APP_ID to your environment (Facebook app ID) so Stories sharing can open the Facebook app.',
-    );
-    return;
-  }
-  try {
-    await RNShare.shareSingle({
-      appId: FACEBOOK_APP_ID,
-      social: Social.FacebookStories,
-      backgroundImage: fileUri,
-    });
-  } catch (e) {
-    console.warn('Facebook Story share', e);
-    const message = e instanceof Error ? e.message : 'Could not open Facebook Stories.';
-    Alert.alert('Facebook', message);
-  }
-}
-
 /**
- * WhatsApp does not expose a public “Status” intent. This uses the WhatsApp image share target
- * (no chat message) so the image opens in WhatsApp; from there many users can set it as Status.
+ * Opens the OS share sheet with the PNG. Works in Expo Go (no extra native modules).
+ * User picks Facebook or WhatsApp; they can choose Story/Status inside each app where supported.
  */
-async function shareToWhatsAppStatus(fileUri: string) {
-  try {
-    await RNShare.shareSingle({
-      social: Social.Whatsapp,
-      url: fileUri,
-      type: 'image/png',
-      filename: 'styla-card.png',
-    });
-  } catch (e) {
-    console.warn('WhatsApp share', e);
+async function shareImageWithSystemSheet(fileUri: string) {
+  const sharingAvailable = await Sharing.isAvailableAsync();
+  if (sharingAvailable) {
     try {
-      await shareImageWithExpo(fileUri);
-    } catch {
-      Alert.alert('WhatsApp', 'Could not open WhatsApp with this image.');
+      await Sharing.shareAsync(fileUri, {
+        mimeType: 'image/png',
+        dialogTitle: 'Share',
+      });
+      return;
+    } catch (e) {
+      console.warn('expo-sharing failed, trying Share API', e);
     }
   }
-}
 
-function promptStoryDestinations(fileUri: string) {
-  Alert.alert('Share', 'Choose where to share your card', [
-    { text: 'Facebook Story', onPress: () => void shareToFacebookStory(fileUri) },
-    { text: 'WhatsApp Status', onPress: () => void shareToWhatsAppStatus(fileUri) },
-    { text: 'Cancel', style: 'cancel' },
-  ]);
+  if (Platform.OS === 'android') {
+    try {
+      await Share.share({
+        title: 'Share',
+        url: fileUri,
+      });
+      return;
+    } catch (e) {
+      console.warn('Share.share failed', e);
+    }
+  } else {
+    try {
+      await Share.share({
+        url: fileUri,
+        message: 'Check out Styla — colour and style analysis app',
+      });
+      return;
+    } catch (e) {
+      console.warn('Share.share failed', e);
+    }
+  }
+
+  Alert.alert('Share', 'Could not open the share sheet.');
 }
 
 const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(function ShareCard(
@@ -154,7 +144,7 @@ const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(function ShareCard(
         return;
       }
 
-      promptStoryDestinations(fileUri);
+      await shareImageWithSystemSheet(fileUri);
     } catch (error) {
       console.error('Share failed:', error);
     }
