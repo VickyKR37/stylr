@@ -36,6 +36,27 @@ type ShareCardProps = {
   shareButtonVisible?: boolean;
 };
 
+/** react-native-view-shot often returns a temp path; Android Share needs a proper file/content URI in `url`. */
+function normalizeCaptureUri(uri: string): string {
+  const trimmed = uri.trim();
+  if (trimmed.startsWith('file://') || trimmed.startsWith('content://')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('/')) {
+    return `file://${trimmed}`;
+  }
+  return trimmed;
+}
+
+async function shareImageWithExpo(uri: string) {
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(uri, {
+      mimeType: 'image/png',
+      dialogTitle: 'Share your result',
+    });
+  }
+}
+
 export default function ShareCard({ shareButtonVisible = true }: ShareCardProps) {
   const cardRef = useRef<ViewShot | null>(null);
   const shareOpen = useRef(new Animated.Value(shareButtonVisible ? 1 : 0)).current;
@@ -58,26 +79,43 @@ export default function ShareCard({ shareButtonVisible = true }: ShareCardProps)
   }, [shareButtonVisible, shareOpen]);
 
   const handleShare = async () => {
+    let fileUri: string | null = null;
     try {
-      const uri = await cardRef.current?.capture?.();
-      if (!uri) return;
+      const captured = await cardRef.current?.capture?.();
+      if (!captured) return;
+      fileUri = normalizeCaptureUri(captured);
 
-      const sharingAvailable = await Sharing.isAvailableAsync();
-      if (sharingAvailable) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'image/png',
-          dialogTitle: 'Share your result',
-        });
-        return;
+      if (Platform.OS === 'android') {
+        try {
+          // Prefer `url` so the intent attaches the temp PNG; avoid mixing `message` here — some OEMs drop the image.
+          await Share.share({
+            title: 'Share your result',
+            url: fileUri,
+          });
+        } catch (shareErr) {
+          console.warn('Share API did not complete; falling back to expo-sharing', shareErr);
+          await shareImageWithExpo(fileUri);
+        }
+      } else {
+        try {
+          await Share.share({
+            url: fileUri,
+            message: 'Check out Styla — colour and style analysis app',
+          });
+        } catch (shareErr) {
+          console.warn('Share API did not complete; falling back to expo-sharing', shareErr);
+          await shareImageWithExpo(fileUri);
+        }
       }
-
-      await Share.share(
-        Platform.OS === 'android'
-          ? { message: 'Check out Styla — colour and style analysis app', url: uri }
-          : { url: uri }
-      );
     } catch (error) {
       console.error('Share failed:', error);
+      if (fileUri) {
+        try {
+          await shareImageWithExpo(fileUri);
+        } catch (fallbackErr) {
+          console.error('expo-sharing fallback failed:', fallbackErr);
+        }
+      }
     }
   };
 
