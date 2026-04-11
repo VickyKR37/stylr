@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react';
 import {
   Animated,
   View,
@@ -32,8 +32,15 @@ const COLOUR_BAR = [
   '#6B8C7A',
 ];
 
-type ShareCardProps = {
+export type ShareCardProps = {
+  /** When false, the built-in Share control stays hidden (e.g. scroll-gated). */
   shareButtonVisible?: boolean;
+  /** When true, only the captureable card is rendered; call ref.share() from elsewhere. */
+  hideShareButton?: boolean;
+};
+
+export type ShareCardRef = {
+  share: () => Promise<void>;
 };
 
 /** react-native-view-shot often returns a temp path; Android Share needs a proper file/content URI in `url`. */
@@ -57,7 +64,10 @@ async function shareImageWithExpo(uri: string) {
   }
 }
 
-export default function ShareCard({ shareButtonVisible = true }: ShareCardProps) {
+const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(function ShareCard(
+  { shareButtonVisible = true, hideShareButton = false },
+  ref,
+) {
   const cardRef = useRef<ViewShot | null>(null);
   const shareOpen = useRef(new Animated.Value(shareButtonVisible ? 1 : 0)).current;
 
@@ -70,15 +80,16 @@ export default function ShareCard({ shareButtonVisible = true }: ShareCardProps)
   });
 
   useEffect(() => {
+    if (hideShareButton) return;
     Animated.spring(shareOpen, {
       toValue: shareButtonVisible ? 1 : 0,
       useNativeDriver: false,
       friction: 9,
       tension: 80,
     }).start();
-  }, [shareButtonVisible, shareOpen]);
+  }, [shareButtonVisible, shareOpen, hideShareButton]);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     let fileUri: string | null = null;
     try {
       const captured = await cardRef.current?.capture?.();
@@ -117,7 +128,9 @@ export default function ShareCard({ shareButtonVisible = true }: ShareCardProps)
         }
       }
     }
-  };
+  }, []);
+
+  useImperativeHandle(ref, () => ({ share: handleShare }), [handleShare]);
 
   if (!fontsLoaded) return null;
 
@@ -131,7 +144,7 @@ export default function ShareCard({ shareButtonVisible = true }: ShareCardProps)
   });
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, hideShareButton && styles.screenCardOnly]}>
       <ViewShot ref={cardRef} options={{ format: 'png', quality: 1 }}>
         <View style={styles.card}>
           <View style={styles.colourBar}>
@@ -176,27 +189,34 @@ export default function ShareCard({ shareButtonVisible = true }: ShareCardProps)
         </View>
       </ViewShot>
 
-      <Animated.View
-        style={[styles.shareButtonSlot, { marginTop: shareMarginTop, height: shareHeight }]}
-        pointerEvents={shareButtonVisible ? 'auto' : 'none'}
-      >
-        <TouchableOpacity
-          style={styles.shareButton}
-          onPress={handleShare}
-          activeOpacity={0.85}
-          disabled={!shareButtonVisible}
+      {!hideShareButton ? (
+        <Animated.View
+          style={[styles.shareButtonSlot, { marginTop: shareMarginTop, height: shareHeight }]}
+          pointerEvents={shareButtonVisible ? 'auto' : 'none'}
         >
-          <Text style={styles.shareButtonText}>Share</Text>
-        </TouchableOpacity>
-      </Animated.View>
+          <TouchableOpacity
+            style={styles.shareButton}
+            onPress={handleShare}
+            activeOpacity={0.85}
+            disabled={!shareButtonVisible}
+          >
+            <Text style={styles.shareButtonText}>Share</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      ) : null}
     </View>
   );
-}
+});
+
+export default ShareCard;
 
 const styles = StyleSheet.create({
   screen: {
     alignItems: 'center',
     paddingVertical: 24,
+  },
+  screenCardOnly: {
+    paddingVertical: 12,
   },
 
   card: {
