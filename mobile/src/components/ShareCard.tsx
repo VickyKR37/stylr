@@ -6,6 +6,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   Share,
   Platform,
 } from 'react-native';
@@ -154,6 +155,8 @@ const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(function ShareCard(
 
   if (!fontsLoaded) return null;
 
+  const canTriggerShare = hideShareButton || shareButtonVisible;
+
   const shareMarginTop = shareOpen.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 20],
@@ -166,7 +169,13 @@ const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(function ShareCard(
   return (
     <View style={[styles.screen, hideShareButton && styles.screenCardOnly]}>
       <ViewShot ref={cardRef} options={{ format: 'png', quality: 1 }}>
-        <View style={styles.card}>
+        <Pressable
+          onPress={handleShare}
+          disabled={!canTriggerShare}
+          accessibilityRole="button"
+          accessibilityLabel="Share card"
+          style={({ pressed }) => [styles.card, pressed && canTriggerShare ? styles.cardPressed : null]}
+        >
           <View style={styles.colourBar}>
             {COLOUR_BAR.map((colour, i) => (
               <View key={i} style={[styles.barSegment, { backgroundColor: colour }]} />
@@ -206,7 +215,7 @@ const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(function ShareCard(
               <Text style={styles.ctaText}>Download on Google Play →</Text>
             </View>
           </View>
-        </View>
+        </Pressable>
       </ViewShot>
 
       {!hideShareButton ? (
@@ -218,7 +227,7 @@ const ShareCard = forwardRef<ShareCardRef, ShareCardProps>(function ShareCard(
             style={styles.shareButton}
             onPress={handleShare}
             activeOpacity={0.85}
-            disabled={!shareButtonVisible}
+            disabled={!canTriggerShare}
           >
             <Text style={styles.shareButtonText}>Share</Text>
           </TouchableOpacity>
@@ -246,6 +255,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E8E4DF',
+  },
+  cardPressed: {
+    opacity: 0.92,
   },
 
   colourBar: {
