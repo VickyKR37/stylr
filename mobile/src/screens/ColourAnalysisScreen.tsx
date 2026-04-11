@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
+import ShareCard from '../components/ShareCard';
 import { analyseSeasonFromAverageRgb } from '../features/colourAnalysis/analyseSeason';
 import { averageRgbFromImageUri } from '../features/colourAnalysis/imageSampling';
 import { SEASONS } from '../features/colourAnalysis/seasons';
@@ -186,6 +187,8 @@ export function ColourAnalysisScreen() {
             This uses a lightweight (mock) model based on average image colour, ported from your web
             demo.
           </Text>
+
+          <ShareCard />
         </View>
       ) : null}
     </ScrollView>
