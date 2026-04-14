@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, Send } from "lucide-react";
 import type { QuestionnaireData, LineAnswer, ScaleAnswer } from "@/types";
 import LoadingSpinner from "@/components/LoadingSpinner";
+import { STORAGE_KEYS, readLocalJson, removeLocalKey, writeLocalJson } from "@/lib/clientStorage";
 
 // Schemas for individual form fields
 const lineAnswerSchema = z.string().min(1, "Please select an option.");
@@ -131,11 +132,15 @@ const stepDescriptions = [
   "Try holding a meter stick against your shoulders (or ask a friend to help) and let it hang straight down. Observe where it aligns with your hips to get a better idea of your body shape.",
 ];
 
-const PENDING_QUESTIONNAIRE_KEY = "pendingQuestionnaireData_v2";
+type QuestionnaireDraft = {
+  currentStep: number;
+  values: Partial<QuestionnaireFormValues>;
+};
 
 export default function QuestionnaireForm({ onSubmit, initialData }: QuestionnaireFormProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
 
   const transformInitialDataToFormValues = (data?: Partial<QuestionnaireData>): Partial<QuestionnaireFormValues> => {
     if (!data) return {};
@@ -172,16 +177,37 @@ export default function QuestionnaireForm({ onSubmit, initialData }: Questionnai
   });
 
   useEffect(() => {
-    const pendingDataString = localStorage.getItem(PENDING_QUESTIONNAIRE_KEY);
-    if (pendingDataString) {
-      try {
-        const pendingData = JSON.parse(pendingDataString) as QuestionnaireData;
-        form.reset(transformInitialDataToFormValues(pendingData));
-      } catch (e) {
-        console.error("Error parsing pending questionnaire data from localStorage:", e);
-      }
+    const pendingData = readLocalJson<QuestionnaireData>(STORAGE_KEYS.PENDING_QUESTIONNAIRE);
+    if (pendingData) {
+      form.reset(transformInitialDataToFormValues(pendingData));
+      setCurrentStep(3);
+      setDraftHydrated(true);
+      return;
     }
+    const draft = readLocalJson<QuestionnaireDraft>(STORAGE_KEYS.QUESTIONNAIRE_DRAFT);
+    if (draft && typeof draft.currentStep === "number" && draft.values) {
+      const step = Math.min(Math.max(draft.currentStep, 0), 3) as 0 | 1 | 2 | 3;
+      setCurrentStep(step);
+      form.reset({
+        ...form.getValues(),
+        ...draft.values,
+      });
+    }
+    setDraftHydrated(true);
   }, [form]);
+
+  const watchedValues = useWatch({ control: form.control });
+
+  useEffect(() => {
+    if (!draftHydrated) return;
+    const handle = window.setTimeout(() => {
+      writeLocalJson(STORAGE_KEYS.QUESTIONNAIRE_DRAFT, {
+        currentStep,
+        values: watchedValues as Partial<QuestionnaireFormValues>,
+      });
+    }, 450);
+    return () => window.clearTimeout(handle);
+  }, [watchedValues, currentStep, draftHydrated]);
 
   const getClassification = (bodyPartKey: keyof typeof lineOptions, answer: string): 'straight' | 'curved' => {
     const option = lineOptions[bodyPartKey].find(opt => opt.value === answer);
@@ -209,6 +235,7 @@ export default function QuestionnaireForm({ onSubmit, initialData }: Questionnai
       bodyShape: data.bodyShape as QuestionnaireData['bodyShape'],
       // preferences field removed
     };
+    removeLocalKey(STORAGE_KEYS.QUESTIONNAIRE_DRAFT);
     await onSubmit(fullData);
     setIsLoading(false);
   };

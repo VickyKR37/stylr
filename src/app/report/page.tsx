@@ -9,8 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
-
-const REPORT_SESSION_KEY = "generatedReportData";
+import { STORAGE_KEYS, readLocalJson } from "@/lib/clientStorage";
 
 export default function ReportPage() {
   const [reportData, setReportData] = useState<UserReportData | null>(null);
@@ -20,15 +19,14 @@ export default function ReportPage() {
   useEffect(() => {
     setIsLoadingReport(true);
     try {
-      const storedReportString = sessionStorage.getItem(REPORT_SESSION_KEY);
-      if (storedReportString) {
-        const parsedData: UserReportData = JSON.parse(storedReportString);
+      const parsedData = readLocalJson<UserReportData>(STORAGE_KEYS.GENERATED_REPORT);
+      if (parsedData) {
         setReportData(parsedData);
       } else {
-        setError("No report data found in session. Please generate a report first.");
+        setError("No report data found. Please generate a report first.");
       }
     } catch (e) {
-      console.error("Error loading report data from sessionStorage:", e);
+      console.error("Error loading report data from localStorage:", e);
       setError("Failed to load your report data. It might be corrupted.");
     } finally {
       setIsLoadingReport(false);

@@ -25,6 +25,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import { processPaymentAndGenerateReport } from '@/actions/questionnaireActions';
 import type { QuestionnaireData, UserReportData } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { STORAGE_KEYS, readLocalJson, removeLocalKey, writeLocalJson } from '@/lib/clientStorage';
 
 const BASE_PRICE = 15.99;
 
@@ -33,8 +34,6 @@ const emailSchema = z.object({
 });
 
 type EmailFormValues = z.infer<typeof emailSchema>;
-
-const PENDING_QUESTIONNAIRE_KEY = "pendingQuestionnaireData_v2";
 
 export default function PaymentPage() {
   const [code, setCode] = useState<string | null>(null);
@@ -53,17 +52,11 @@ export default function PaymentPage() {
   });
 
   useEffect(() => {
-    const storedPaymentStatus = sessionStorage.getItem('paymentSuccessStatus');
-    if (storedPaymentStatus) {
-      try {
-        const parsedStatus: PaymentSuccessData = JSON.parse(storedPaymentStatus);
-        setPaymentDone(parsedStatus);
-        setShowEmailInput(true);
-        console.log("Client: useEffect - Found stored payment status, setting paymentDone and showEmailInput.");
-      } catch (e) {
-        console.error("Client: useEffect - Error parsing stored payment status from sessionStorage:", e);
-        sessionStorage.removeItem('paymentSuccessStatus');
-      }
+    const parsedStatus = readLocalJson<PaymentSuccessData>(STORAGE_KEYS.PAYMENT_SUCCESS);
+    if (parsedStatus) {
+      setPaymentDone(parsedStatus);
+      setShowEmailInput(true);
+      console.log("Client: useEffect - Found stored payment status, setting paymentDone and showEmailInput.");
     }
   }, []);
 
@@ -71,7 +64,7 @@ export default function PaymentPage() {
     console.log("Client: handlePaymentSuccess called with data:", data);
     setPaymentDone(data);
     setShowEmailInput(true);
-    sessionStorage.setItem('paymentSuccessStatus', JSON.stringify(data));
+    writeLocalJson(STORAGE_KEYS.PAYMENT_SUCCESS, data);
     toast({
       title: "Payment Confirmed!",
       description: "Your payment was successful. Please provide your email to receive the report.",
@@ -84,9 +77,9 @@ export default function PaymentPage() {
 
     let questionnaireData: QuestionnaireData | null = null;
     try {
-      const storedData = sessionStorage.getItem(PENDING_QUESTIONNAIRE_KEY);
-      if (storedData) {
-        questionnaireData = JSON.parse(storedData);
+      const parsed = readLocalJson<QuestionnaireData>(STORAGE_KEYS.PENDING_QUESTIONNAIRE);
+      if (parsed) {
+        questionnaireData = parsed;
       } else {
         throw new Error("Questionnaire data not found");
       }
@@ -114,9 +107,9 @@ export default function PaymentPage() {
       const result = await processPaymentAndGenerateReport(questionnaireData, paymentDone, values.email);
 
       if (result.success && result.reportData) {
-        sessionStorage.setItem("generatedReportData", JSON.stringify(result.reportData));
-        sessionStorage.removeItem(PENDING_QUESTIONNAIRE_KEY);
-        sessionStorage.removeItem('paymentSuccessStatus');
+        writeLocalJson(STORAGE_KEYS.GENERATED_REPORT, result.reportData);
+        removeLocalKey(STORAGE_KEYS.PENDING_QUESTIONNAIRE);
+        removeLocalKey(STORAGE_KEYS.PAYMENT_SUCCESS);
         toast({
           title: "Report Generated!",
           description: "Your personalised style report has been sent to your email.",

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Linking,
@@ -14,6 +14,8 @@ import { File, Paths } from 'expo-file-system';
 
 import ShareCard, { type ShareCardRef } from '../components/ShareCard';
 import { GOOGLE_PLAY_REVIEW_URL } from '../constants/externalLinks';
+import { useAuth } from '../../context/AuthContext';
+import { loadStyleAnalysis, saveStyleAnalysis } from '../../lib/styleAnalysisStorage';
 import { generateLogicBasedReport } from '../features/styleAnalysis/generateLogicBasedReport';
 import type {
   BodyShape,
@@ -144,14 +146,50 @@ function isReportHeading(line: string): boolean {
 }
 
 export function StyleAnalysisScreen() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+
   const [step, setStep] = useState<Step>(0);
   const [answers, setAnswers] = useState<QuestionnaireFormState>({});
   const [report, setReport] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+  const [restoredFromStorage, setRestoredFromStorage] = useState(false);
   const shareCardRef = useRef<ShareCardRef>(null);
 
   const progress = useMemo(() => ((step + 1) / 4) * 100, [step]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restore() {
+      if (!userId) {
+        setRestoredFromStorage(true);
+        return;
+      }
+      const saved = await loadStyleAnalysis(userId);
+      if (cancelled) return;
+      if (saved) {
+        setStep(saved.step);
+        setAnswers(saved.answers);
+        setReport(saved.report);
+      }
+      setRestoredFromStorage(true);
+    }
+
+    restore();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !restoredFromStorage) return;
+    const handle = setTimeout(() => {
+      void saveStyleAnalysis(userId, { step, answers, report });
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [userId, restoredFromStorage, step, answers, report]);
 
   function setAnswer<K extends keyof QuestionnaireFormState>(key: K, value: QuestionnaireFormState[K]) {
     setAnswers((prev) => ({ ...prev, [key]: value }));
