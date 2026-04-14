@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,12 +10,14 @@ import {
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { File, Paths } from 'expo-file-system';
 
 import ShareCard from '../components/ShareCard';
 import { analyseSeasonFromAverageRgb } from '../features/colourAnalysis/analyseSeason';
 import { averageRgbFromImageUri } from '../features/colourAnalysis/imageSampling';
-import { SEASONS } from '../features/colourAnalysis/seasons';
-
+import { SEASONS, type SeasonData } from '../features/colourAnalysis/seasons';
+import { useAuth } from '../../context/AuthContext';
+import { loadColourAnalysis, saveColourAnalysis } from '../../lib/colourAnalysisStorage';
 
 type ResultState =
   | { status: 'idle' }
@@ -23,14 +25,103 @@ type ResultState =
   | { status: 'ready'; uri: string; season: keyof typeof SEASONS; brightness: number; warmth: number }
   | { status: 'error'; message: string };
 
+type ReadyResult = Extract<ResultState, { status: 'ready' }>;
+
+function ColourResultsBody({ result, seasonData }: { result: ReadyResult; seasonData: SeasonData }) {
+  return (
+    <View style={styles.results}>
+      <View style={styles.resultsHeader}>
+        <Text style={styles.resultsLabel}>Your season</Text>
+        <Text style={styles.seasonName}>{result.season}</Text>
+        <Text style={styles.seasonTagline}>{seasonData.tagline}</Text>
+        <Text style={styles.metrics}>
+          Brightness: {result.brightness.toFixed(2)} · Warmth: {result.warmth.toFixed(2)}
+        </Text>
+      </View>
+
+      <View style={styles.grid}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Colours to wear</Text>
+          <Text style={styles.cardSubtitle}>These harmonise with your natural colouring.</Text>
+          <View style={styles.swatchGrid}>
+            {seasonData.wear.map((s) => (
+              <View key={`wear-${s.hex}-${s.name}`} style={[styles.swatch, { backgroundColor: s.hex }]}>
+                <Text style={styles.swatchTop}>{s.name}</Text>
+                <Text style={styles.swatchMeta}>
+                  {s.hex.toUpperCase()} · {s.note}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Colours to avoid</Text>
+          <Text style={styles.cardSubtitle}>These may overpower or dull your features.</Text>
+          <View style={styles.swatchGrid}>
+            {seasonData.avoid.map((s) => (
+              <View key={`avoid-${s.hex}-${s.name}`} style={[styles.swatch, { backgroundColor: s.hex }]}>
+                <Text style={styles.swatchTop}>{s.name}</Text>
+                <Text style={styles.swatchMeta}>
+                  {s.hex.toUpperCase()} · {s.note}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      <Text style={styles.disclaimer}>
+        This uses a lightweight (mock) model based on average image colour, ported from your web demo.
+      </Text>
+
+      <ShareCard />
+    </View>
+  );
+}
+
 export function ColourAnalysisScreen() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+
   const [result, setResult] = useState<ResultState>({ status: 'idle' });
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [restoredFromStorage, setRestoredFromStorage] = useState(false);
 
   const seasonData = useMemo(() => {
     if (result.status !== 'ready') return null;
     return SEASONS[result.season];
   }, [result]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restore() {
+      if (!userId) {
+        setRestoredFromStorage(true);
+        return;
+      }
+      const saved = await loadColourAnalysis(userId);
+      if (cancelled || !saved) {
+        setRestoredFromStorage(true);
+        return;
+      }
+      setResult({
+        status: 'ready',
+        uri: saved.photoUri,
+        season: saved.season,
+        brightness: saved.brightness,
+        warmth: saved.warmth,
+      });
+      setImageUri(saved.photoUri);
+      setRestoredFromStorage(true);
+    }
+
+    restore();
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   async function pickFromLibrary() {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -80,9 +171,25 @@ export function ColourAnalysisScreen() {
     try {
       const avg = await averageRgbFromImageUri(imageUri, { size: 80 });
       const analysis = analyseSeasonFromAverageRgb(avg);
+
+      let displayUri = imageUri;
+      if (userId) {
+        const sourceFile = new File(imageUri);
+        const destFile = new File(Paths.document, `colour_analysis_${userId}.jpg`);
+        sourceFile.copy(destFile);
+        displayUri = destFile.uri;
+        await saveColourAnalysis(userId, {
+          season: analysis.season,
+          brightness: analysis.brightness,
+          warmth: analysis.warmth,
+          photoUri: displayUri,
+        });
+      }
+
+      setImageUri(displayUri);
       setResult({
         status: 'ready',
-        uri: imageUri,
+        uri: displayUri,
         season: analysis.season,
         brightness: analysis.brightness,
         warmth: analysis.warmth,
@@ -93,12 +200,35 @@ export function ColourAnalysisScreen() {
     }
   }
 
+  if (!restoredFromStorage) {
+    return (
+      <View style={styles.centerShell}>
+        <ActivityIndicator size="large" color="#6366f1" />
+      </View>
+    );
+  }
+
+  if (result.status === 'ready' && seasonData) {
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.h1}>Your colour results</Text>
+        <Text style={styles.p}>
+          Your seasonal palette and colour guidance from your photo analysis.
+        </Text>
+        {result.uri ? (
+          <Image source={{ uri: result.uri }} style={styles.resultsHeroImage} />
+        ) : null}
+        <ColourResultsBody result={result} seasonData={seasonData} />
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.h1}>AI Colour Analysis</Text>
       <Text style={styles.p}>
-        Upload or take a photo and discover your seasonal palette. For best results: hair off your
-        face, soft daylight, no makeup/glasses/accessories.
+        Upload or take a photo and discover your seasonal palette. For best results: hair off your face, soft daylight,
+        no makeup/glasses/accessories.
       </Text>
 
       <View style={styles.actionsRow}>
@@ -139,63 +269,18 @@ export function ColourAnalysisScreen() {
 
         {result.status === 'error' ? <Text style={styles.errorText}>{result.message}</Text> : null}
       </View>
-
-      {result.status === 'ready' && seasonData ? (
-        <View style={styles.results}>
-          <View style={styles.resultsHeader}>
-            <Text style={styles.resultsLabel}>Your season</Text>
-            <Text style={styles.seasonName}>{result.season}</Text>
-            <Text style={styles.seasonTagline}>{seasonData.tagline}</Text>
-            <Text style={styles.metrics}>
-              Brightness: {result.brightness.toFixed(2)} · Warmth: {result.warmth.toFixed(2)}
-            </Text>
-          </View>
-
-          <View style={styles.grid}>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Colours to wear</Text>
-              <Text style={styles.cardSubtitle}>These harmonise with your natural colouring.</Text>
-              <View style={styles.swatchGrid}>
-                {seasonData.wear.map((s) => (
-                  <View key={`wear-${s.hex}-${s.name}`} style={[styles.swatch, { backgroundColor: s.hex }]}>
-                    <Text style={styles.swatchTop}>{s.name}</Text>
-                    <Text style={styles.swatchMeta}>
-                      {s.hex.toUpperCase()} · {s.note}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>Colours to avoid</Text>
-              <Text style={styles.cardSubtitle}>These may overpower or dull your features.</Text>
-              <View style={styles.swatchGrid}>
-                {seasonData.avoid.map((s) => (
-                  <View key={`avoid-${s.hex}-${s.name}`} style={[styles.swatch, { backgroundColor: s.hex }]}>
-                    <Text style={styles.swatchTop}>{s.name}</Text>
-                    <Text style={styles.swatchMeta}>
-                      {s.hex.toUpperCase()} · {s.note}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          </View>
-
-          <Text style={styles.disclaimer}>
-            This uses a lightweight (mock) model based on average image colour, ported from your web
-            demo.
-          </Text>
-
-          <ShareCard />
-        </View>
-      ) : null}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  centerShell: {
+    flex: 1,
+    minHeight: 280,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0b1220',
+  },
   container: {
     padding: 18,
     paddingBottom: 34,
@@ -212,6 +297,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     lineHeight: 18,
     fontSize: 13,
+  },
+  resultsHeroImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 14,
+    marginTop: 14,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -376,4 +467,3 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
-
